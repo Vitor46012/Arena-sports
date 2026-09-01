@@ -1,0 +1,6 @@
+{
+  "name": "Sports Review",
+  "description": "SaaS B2B2C de automação de vídeo esportivo e gerenciamento Edge.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,181 @@
+// Sports Review - Prisma Schema (PostgreSQL)
+// SaaS B2B2C de Automação de Vídeo Esportivo & Transmissão Edge N100
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// ENUMS
+// -----------------------------------------------------------------------------
+
+enum UserRole {
+  ADMIN
+  TENANT
+}
+
+enum PlanType {
+  BASIC
+  PRO
+  MASTER
+}
+
+enum NodeStatus {
+  ONLINE
+  OFFLINE
+  WARNING
+}
+
+enum ClipStatus {
+  PROCESSING
+  UPLOADED
+  FAILED
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+// -----------------------------------------------------------------------------
+// MODELS
+// -----------------------------------------------------------------------------
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  name         String?
+  role         UserRole  @default(TENANT)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relação opcional com Arena (um Tenant gerencia uma Arena, Admin não possui vínculo)
+  arenaId      String?
+  arena        Arena?    @relation(fields: [arenaId], references: [id], onDelete: SetNull)
+
+  @@index([arenaId])
+  @@map("users")
+}
+
+model Arena {
+  id           String      @id @default(uuid())
+  name         String
+  cnpj         String?     @unique
+  address      String?
+  planType     PlanType    @default(PRO)
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  // Relacionamentos 1:N
+  users        User[]
+  edgeNodes    EdgeNode[]
+  matches      Match[]
+  videoClips   VideoClip[]
+  invoices     Invoice[]
+
+  @@map("arenas")
+}
+
+model EdgeNode {
+  id             String      @id @default(uuid())
+  nodeId         String      @unique // Ex: "node-pr-112"
+  macAddress     String      @unique
+  mqttToken      String      @unique
+  status         NodeStatus  @default(OFFLINE)
+  localIp        String?
+  srtPort        Int         @default(6000)
+  cpuUsage       Float?
+  temperature    Float?
+  fps            Int?
+  bitrateMbps    Float?
+  lastPing       DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  // Relação com a Arena contratante
+  arenaId        String
+  arena          Arena       @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId])
+  @@map("edge_nodes")
+}
+
+model Match {
+  id           String      @id @default(uuid())
+  homeTeam     String      @default("Time A")
+  awayTeam     String      @default("Time B")
+  homeScore    Int         @default(0)
+  awayScore    Int         @default(0)
+  startTime    DateTime    @default(now())
+  endTime      DateTime?
+  isLive       Boolean     @default(false)
+  activeScene  String?     @default("Jogo Ao Vivo + Placar")
+  courtNumber  Int         @default(1)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  // Relação com Arena
+  arenaId      String
+  arena        Arena       @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  // Relacionamento 1:N com lances cortados nesta partida
+  videoClips   VideoClip[]
+
+  @@index([arenaId])
+  @@map("matches")
+}
+
+model VideoClip {
+  id           String      @id @default(uuid())
+  machineName  String      @unique // Ex: "LANCE_20260831_1942"
+  s3Key        String      // Caminho no bucket S3 (ex: "pr112/2026-08-31/LANCE_...mp4")
+  s3Url        String?     // URL de streaming/download
+  duration     String      @default("00:30") // Duração formatada ou em segundos
+  resolution   String      @default("1920x1080")
+  sizeMb       Float?
+  triggerType  String?     @default("Botoeira ESP32") // "Botoeira ESP32", "Painel Web", etc.
+  status       ClipStatus  @default(PROCESSING)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  // Relação com a Partida (opcional caso gravado avulso)
+  matchId      String?
+  match        Match?      @relation(fields: [matchId], references: [id], onDelete: SetNull)
+
+  // Relação direta com a Arena
+  arenaId      String
+  arena        Arena       @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId])
+  @@index([matchId])
+  @@map("video_clips")
+}
+
+model Invoice {
+  id           String         @id @default(uuid())
+  amount       Decimal        @db.Decimal(10, 2)
+  status       InvoiceStatus  @default(PENDING)
+  dueDate      DateTime
+  paidAt       DateTime?
+  pixKey       String?        // Chave PIX ou payload EMV Copia e Cola
+  referenceMonth String?      // Ex: "08/2026"
+  storageGb    Float?         @default(0.0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  // Relação com a Arena faturada
+  arenaId      String
+  arena        Arena          @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId])
+  @@map("invoices")
+}
