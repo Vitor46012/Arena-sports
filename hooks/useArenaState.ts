@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export interface TelemetryData {
   cpu: number;
@@ -12,6 +12,7 @@ export interface TelemetryData {
 }
 
 export interface MatchState {
+  id?: string;
   courtId: string;
   courtName: string;
   homeTeam: string;
@@ -28,6 +29,7 @@ export interface MatchState {
 export interface ArenaStateHook {
   telemetry: TelemetryData;
   matchState: MatchState;
+  updateTelemetry: (data: Partial<TelemetryData>) => void;
   updateScore: (team: 'home' | 'away', delta: number) => void;
   setTeams: (home: string, away: string) => void;
   toggleLive: () => boolean;
@@ -37,9 +39,11 @@ export interface ArenaStateHook {
   setActiveScene: (scene: string) => void;
   setActiveCourt: (courtId: string) => void;
   triggerManualClip: () => { success: boolean; clipName: string };
+  syncMatchState: (data: Record<string, unknown>) => Promise<void>;
 }
 
 const INITIAL_MATCH_STATE: MatchState = {
+  id: '',
   courtId: '1',
   courtName: 'Quadra 1 (Society Principal)',
   homeTeam: 'PARANAGUÁ FC',
@@ -48,46 +52,93 @@ const INITIAL_MATCH_STATE: MatchState = {
   awayScore: 2,
   isLive: false,
   showOverlay: true,
-  timerSeconds: 1420, // 23:40
+  timerSeconds: 0,
   isTimerRunning: false,
   activeScene: 'Jogo Ao Vivo + Placar',
 };
 
+// Estado inicial representando hardware inativo (Diretiva Zero Mocks)
+const INITIAL_TELEMETRY: TelemetryData = {
+  cpu: 0,
+  temp: 0,
+  fps: 0,
+  bitrateMbps: 0,
+  brokerConnected: false,
+  lastPacketTime: 'Aguardando Hardware',
+};
+
 export function useArenaState(nodeId: string = 'node-pr-112'): ArenaStateHook {
-  const [telemetry, setTelemetry] = useState<TelemetryData>({
-    cpu: 34,
-    temp: 51,
-    fps: 60,
-    bitrateMbps: 8.4,
-    brokerConnected: true,
-    lastPacketTime: 'Agora mesmo',
-  });
-
+  const [telemetry, setTelemetry] = useState<TelemetryData>(INITIAL_TELEMETRY);
   const [matchState, setMatchState] = useState<MatchState>(INITIAL_MATCH_STATE);
+  const matchIdRef = useRef<string>('');
 
-  // Simulated MQTT telemetry stream every 2 seconds
+  // Atualização explícita de telemetria para injeção via cliente MQTT / WebSockets reais
+  const updateTelemetry = useCallback((data: Partial<TelemetryData>) => {
+    setTelemetry((prev) => ({
+      ...prev,
+      ...data,
+      lastPacketTime: data.lastPacketTime || new Date().toLocaleTimeString('pt-BR'),
+    }));
+  }, []);
+
+  // 1. Carregamento inicial da partida real do banco de dados (Prisma PostgreSQL)
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTelemetry((prev) => {
-        const cpuVariation = Math.floor(Math.random() * 18 + 28);
-        const tempVariation = Math.floor(Math.random() * 6 + 48);
-        const fpsVariation = Math.random() > 0.92 ? 59.4 : 60.0;
-        const bitrateVariation = Number((Math.random() * 0.6 + 8.1).toFixed(2));
-        const timestamp = new Date().toLocaleTimeString('pt-BR');
+    let isMounted = true;
+    const fetchMatch = async () => {
+      try {
+        const res = await fetch('/api/matches', {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        });
+        if (!res.ok) return;
 
-        return {
-          ...prev,
-          cpu: cpuVariation,
-          temp: tempVariation,
-          fps: fpsVariation,
-          bitrateMbps: bitrateVariation,
-          lastPacketTime: timestamp,
-        };
+        const data = await res.json();
+        if (isMounted && data && data.id) {
+          matchIdRef.current = data.id;
+          setMatchState((prev) => ({
+            ...prev,
+            id: data.id,
+            homeScore: typeof data.homeScore === 'number' ? data.homeScore : prev.homeScore,
+            awayScore: typeof data.awayScore === 'number' ? data.awayScore : prev.awayScore,
+            homeTeam: data.homeTeam || prev.homeTeam,
+            awayTeam: data.awayTeam || prev.awayTeam,
+            isLive: typeof data.isLive === 'boolean' ? data.isLive : prev.isLive,
+            activeScene: data.activeScene || prev.activeScene,
+            courtName: data.arena?.name ? `${data.arena.name} - Quadra ${data.courtNumber || 1}` : prev.courtName,
+          }));
+        }
+      } catch (err) {
+        console.error('[USE_ARENA_STATE] Erro ao buscar dados reais da partida:', err);
+      }
+    };
+
+    fetchMatch();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 2. Função interna assíncrona para persistir atualizações no PostgreSQL
+  const syncMatchState = useCallback(async (data: Record<string, unknown>) => {
+    const currentId = data.id || matchIdRef.current || matchState.id;
+    if (!currentId) return;
+
+    try {
+      await fetch('/api/matches', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          id: currentId,
+          ...data,
+        }),
       });
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [nodeId]);
+    } catch (err) {
+      console.error('[USE_ARENA_STATE] Erro ao sincronizar estado da partida com API:', err);
+    }
+  }, [matchState.id]);
 
   // Chronometer timer tick
   useEffect(() => {
@@ -105,16 +156,26 @@ export function useArenaState(nodeId: string = 'node-pr-112'): ArenaStateHook {
     };
   }, [matchState.isTimerRunning]);
 
+  // 3. Atualização de placar com sincronização no banco
   const updateScore = useCallback((team: 'home' | 'away', delta: number) => {
     setMatchState((prev) => {
       const key = team === 'home' ? 'homeScore' : 'awayScore';
       const nextScore = Math.max(0, prev[key] + delta);
-      return {
+      const newState = {
         ...prev,
         [key]: nextScore,
       };
+
+      // Persistir no banco de dados via PUT /api/matches
+      syncMatchState({
+        id: prev.id || matchIdRef.current,
+        homeScore: team === 'home' ? nextScore : prev.homeScore,
+        awayScore: team === 'away' ? nextScore : prev.awayScore,
+      });
+
+      return newState;
     });
-  }, []);
+  }, [syncMatchState]);
 
   const setTeams = useCallback((home: string, away: string) => {
     setMatchState((prev) => ({
@@ -128,13 +189,17 @@ export function useArenaState(nodeId: string = 'node-pr-112'): ArenaStateHook {
     let nextStatus = false;
     setMatchState((prev) => {
       nextStatus = !prev.isLive;
+      syncMatchState({
+        id: prev.id || matchIdRef.current,
+        isLive: nextStatus,
+      });
       return {
         ...prev,
         isLive: nextStatus,
       };
     });
     return nextStatus;
-  }, []);
+  }, [syncMatchState]);
 
   const toggleTimer = useCallback(() => {
     setMatchState((prev) => ({
@@ -158,12 +223,19 @@ export function useArenaState(nodeId: string = 'node-pr-112'): ArenaStateHook {
     }));
   }, []);
 
+  // 4. Troca de cena ativa com sincronização no banco
   const setActiveScene = useCallback((scene: string) => {
-    setMatchState((prev) => ({
-      ...prev,
-      activeScene: scene,
-    }));
-  }, []);
+    setMatchState((prev) => {
+      syncMatchState({
+        id: prev.id || matchIdRef.current,
+        activeScene: scene,
+      });
+      return {
+        ...prev,
+        activeScene: scene,
+      };
+    });
+  }, [syncMatchState]);
 
   const setActiveCourt = useCallback((courtId: string) => {
     const courtNames: Record<string, string> = {
@@ -190,6 +262,7 @@ export function useArenaState(nodeId: string = 'node-pr-112'): ArenaStateHook {
   return {
     telemetry,
     matchState,
+    updateTelemetry,
     updateScore,
     setTeams,
     toggleLive,
@@ -199,5 +272,6 @@ export function useArenaState(nodeId: string = 'node-pr-112'): ArenaStateHook {
     setActiveScene,
     setActiveCourt,
     triggerManualClip,
+    syncMatchState,
   };
 }

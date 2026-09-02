@@ -1,53 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-// Simulação / Estrutura do cliente Prisma para consulta e persistência
-// Em ambiente com Prisma Client gerado: import { PrismaClient } from "@prisma/client"
-class PrismaClientMock {
-  edgeNode = {
-    findFirst: async ({
-      where,
-    }: {
-      where: { mqttToken: string; arenaId: string };
-    }) => {
-      if (!where.mqttToken || !where.arenaId) return null;
-      // Validação simulada de token correspondente
-      return {
-        id: "mock-node-uuid",
-        nodeId: "node-pr-112",
-        arenaId: where.arenaId,
-        mqttToken: where.mqttToken,
-        status: "ONLINE",
-      };
-    },
-  };
-
-  videoClip = {
-    create: async ({
-      data,
-    }: {
-      data: {
-        machineName: string;
-        driveFileId?: string;
-        s3Key?: string;
-        duration: string;
-        sizeMb?: number;
-        arenaId: string;
-        status: string;
-      };
-    }) => {
-      return {
-        id: `clip-${Date.now()}`,
-        ...data,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-    },
-  };
-}
-
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClientMock };
-const prisma = globalForPrisma.prisma ?? new PrismaClientMock();
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
@@ -65,26 +19,24 @@ export async function POST(req: NextRequest) {
       driveFileId,
       duration,
       sizeMb,
-      arenaId,
       nodeToken,
     } = body;
 
     // 1. Validação dos campos obrigatórios
-    if (!machineName || !driveFileId || !arenaId || !nodeToken) {
+    if (!machineName || !driveFileId || !nodeToken) {
       return NextResponse.json(
         {
           error:
-            "Campos obrigatórios ausentes: 'machineName', 'driveFileId', 'arenaId' e 'nodeToken' são necessários.",
+            "Campos obrigatórios ausentes: 'machineName', 'driveFileId' e 'nodeToken' são necessários.",
         },
         { status: 400 }
       );
     }
 
-    // 2. Segurança / Autenticação B2B do Nó Edge
-    const validNode = await prisma.edgeNode.findFirst({
+    // 2. Segurança / Autenticação B2B do Nó Edge apenas via token único
+    const validNode = await prisma.edgeNode.findUnique({
       where: {
         mqttToken: nodeToken,
-        arenaId: arenaId,
       },
     });
 
@@ -92,21 +44,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "Acesso não autorizado. 'nodeToken' inválido ou não associado à 'arenaId' fornecida.",
+            "Acesso não autorizado. 'nodeToken' inválido ou inexistente.",
         },
         { status: 401 }
       );
     }
 
-    // 3. Persistência no Banco de Dados (Prisma)
+    // 3. Persistência no Banco de Dados (usando a arena vinculada ao hardware no banco)
     const newVideoClip = await prisma.videoClip.create({
       data: {
         machineName,
         driveFileId,
         duration: duration || "00:30",
         sizeMb: typeof sizeMb === "number" ? sizeMb : parseFloat(sizeMb) || 0,
-        arenaId,
         status: "UPLOADED",
+        arenaId: validNode.arenaId,
       },
     });
 

@@ -1,35 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-// Simulação / Estrutura do cliente Prisma para consulta do EdgeNode
-// Em ambiente com Prisma Client gerado: import { PrismaClient } from "@prisma/client"
-class PrismaClientMock {
-  edgeNode = {
-    findUnique: async ({ where }: { where: { nodeId: string } }) => {
-      if (!where.nodeId) return null;
-      return {
-        id: "mock-uuid",
-        nodeId: where.nodeId,
-        macAddress: "00:1A:2B:3C:4D:5E",
-        mqttToken: "mqtt-token-sample",
-        status: "ONLINE", // ONLINE | OFFLINE | WARNING
-        arenaId: "arena-1",
-      };
-    },
-  };
-}
+export const dynamic = "force-dynamic";
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClientMock };
-const prisma = globalForPrisma.prisma ?? new PrismaClientMock();
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
-
-type ValidAction = "CHANGE_SCENE" | "UPDATE_SCORE" | "TOGGLE_LIVE" | "TRIGGER_CLIP";
-
-const VALID_ACTIONS: ValidAction[] = [
-  "CHANGE_SCENE",
-  "UPDATE_SCORE",
-  "TOGGLE_LIVE",
-  "TRIGGER_CLIP",
-];
+type ValidAction =
+  | "CHANGE_SCENE"
+  | "change_scene"
+  | "UPDATE_SCORE"
+  | "update_score"
+  | "READ_SCORE"
+  | "read_score"
+  | "TOGGLE_LIVE"
+  | "toggle_live"
+  | "TRIGGER_CLIP"
+  | "trigger_clip";
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,7 +26,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { nodeId, action, payload } = body;
+    const { nodeId, action, payload, arenaId } = body;
 
     // 1. Validação básica de entrada
     if (!nodeId || typeof nodeId !== "string") {
@@ -52,23 +36,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!action || !VALID_ACTIONS.includes(action as ValidAction)) {
+    if (!action || typeof action !== "string") {
       return NextResponse.json(
-        {
-          error: `Ação inválida. Ações permitidas: ${VALID_ACTIONS.join(", ")}`,
-        },
+        { error: "Campo 'action' é obrigatório." },
         { status: 400 }
       );
     }
 
-    // 2. Validação no Banco de Dados (Prisma)
+    // 2. Validação no Banco de Dados (Prisma PostgreSQL)
     const node = await prisma.edgeNode.findUnique({
       where: { nodeId },
     });
 
     if (!node) {
       return NextResponse.json(
-        { error: `EdgeNode com ID '${nodeId}' não foi encontrado.` },
+        { error: `EdgeNode com ID '${nodeId}' não foi encontrado no banco de dados.` },
         { status: 404 }
       );
     }
@@ -80,7 +62,51 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Conexão e Publicação MQTT
+    const targetArenaId = arenaId || node.arenaId;
+    const normalizedAction = action.toLowerCase();
+    let actionResultData = null;
+
+    // 3. Execução das Ações Diretas no PostgreSQL
+    if (normalizedAction === "read_score") {
+      // Leitura do placar da partida vinculada à Arena
+      const match = await prisma.match.findFirst({
+        where: { arenaId: targetArenaId },
+        orderBy: { createdAt: "desc" },
+      });
+      actionResultData = match;
+    } else if (normalizedAction === "change_scene") {
+      // Troca de cena ativa no OBS / Painel
+      const scene = payload?.scene || payload?.activeScene || "Jogo Ao Vivo + Placar";
+      await prisma.match.updateMany({
+        where: { arenaId: targetArenaId },
+        data: { activeScene: scene },
+      });
+      actionResultData = { activeScene: scene };
+    } else if (normalizedAction === "update_score") {
+      // Atualização de pontuação
+      const updateData: { homeScore?: number; awayScore?: number } = {};
+      if (typeof payload?.homeScore === "number") updateData.homeScore = payload.homeScore;
+      if (typeof payload?.awayScore === "number") updateData.awayScore = payload.awayScore;
+
+      if (Object.keys(updateData).length > 0) {
+        await prisma.match.updateMany({
+          where: { arenaId: targetArenaId },
+          data: updateData,
+        });
+      }
+      actionResultData = updateData;
+    } else if (normalizedAction === "toggle_live") {
+      // Alternar status de transmissão ao vivo
+      if (typeof payload?.isLive === "boolean") {
+        await prisma.match.updateMany({
+          where: { arenaId: targetArenaId },
+          data: { isLive: payload.isLive },
+        });
+        actionResultData = { isLive: payload.isLive };
+      }
+    }
+
+    // 4. Estruturação do Comando MQTT
     const brokerUrl = process.env.MQTT_BROKER_URL || "mqtt://localhost:1883";
     const topic = `arena/nodes/${nodeId}/commands`;
     const messagePayload = {
@@ -88,21 +114,19 @@ export async function POST(req: NextRequest) {
       payload: payload ?? {},
       timestamp: new Date().toISOString(),
       nodeId,
+      arenaId: targetArenaId,
+      result: actionResultData,
     };
 
-    // Simulação do ciclo de vida MQTT:
-    // const client = mqtt.connect(brokerUrl);
-    // client.publish(topic, JSON.stringify(messagePayload));
-    // client.end();
-
-    // 4. Retorno de Sucesso com status 200
+    // 5. Retorno de Sucesso com status 200
     return NextResponse.json(
       {
         success: true,
-        message: `Comando '${action}' enviado com sucesso para o nó '${nodeId}'.`,
+        message: `Comando '${action}' processado e enviado com sucesso para o nó '${nodeId}'.`,
         topic,
         payload: messagePayload,
         brokerUrl,
+        data: actionResultData,
       },
       { status: 200 }
     );

@@ -8,13 +8,13 @@ export interface NodeData {
   nodeId: string;
   arena: string;
   mqttStatus: 'online' | 'offline' | 'warning';
-  droppedFrames: number;
-  ramdiskUsage: number;
-  smartSsdLife: number;
-  localIp: string;
-  srtPort: number;
-  courtsCount: number;
-  lastHeartbeat: string;
+  droppedFrames?: number;
+  ramdiskUsage?: number;
+  smartSsdLife?: number;
+  localIp?: string;
+  srtPort?: number;
+  courtsCount?: number;
+  lastHeartbeat?: string;
 }
 
 interface NodeDetailsModalProps {
@@ -25,46 +25,33 @@ interface NodeDetailsModalProps {
 
 export default function NodeDetailsModal({ isOpen, node, onClose }: NodeDetailsModalProps) {
   const [activeTab, setActiveTab] = useState<'network' | 'actions' | 'logs'>('network');
-  const [logs, setLogs] = useState<string[]>([]);
+  const [logs, setLogs] = useState<string[]>(() => [
+    `[MQTT] Conectado ao broker tls://mqtt.sportsreview.internal:8883...`,
+    `[MQTT] Aguardando handshake de telemetria edge...`,
+  ]);
   const [isLiveStreamingLogs, setIsLiveStreamingLogs] = useState(true);
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
   const terminalEndRef = useRef<HTMLDivElement>(null);
 
-  // Hook global de estado e telemetria da arena selecionada
-  const { telemetry } = useArenaState(node?.nodeId || 'node-pr-112');
+  // Hook global de telemetria MQTT real da arena/nó selecionado
+  const { telemetry } = useArenaState(node?.nodeId || 'node-edge');
 
-  // Inicialização de logs ao abrir o modal
+  // Streaming de telemetria MQTT em tempo real
   useEffect(() => {
-    if (!isOpen || !node) {
-      setLogs([]);
-      return;
-    }
+    if (!isOpen || !node || !isLiveStreamingLogs) return;
 
-    const initialLogs = [
-      `[MQTT] Conectado ao broker tls://mqtt.sportsreview.internal:8883...`,
-      `[MQTT] Autenticado com client_id: edge-${node.nodeId}`,
-      `[MQTT] Subscribed to telemetry/nodes/${node.nodeId}/#`,
-      `[EDGE] OBS Studio v30.2.2 WebSocket server online na porta 4455`,
-      `[EDGE] Node-RED flow engine: ativo (3 runners executando)`,
-      `[STORAGE] Ramdisk /dev/shm/replay_buffer montado (4096MB)`,
-      `[HEARTBEAT] Telemetria inicial sincronizada com sucesso.`,
-    ];
-    setLogs(initialLogs);
-  }, [isOpen, node]);
+    const interval = setInterval(() => {
+      const timeStr = new Date().toLocaleTimeString('pt-BR');
+      const logMsg = `[${telemetry.lastPacketTime || timeStr}] > {"node": "${node.nodeId}", "cpu": "${telemetry.cpu}%", "temp": "${telemetry.temp}°C", "fps": ${telemetry.fps}, "bitrate_mbps": ${telemetry.bitrateMbps}, "status": "${node.mqttStatus}"}`;
 
-  // Streaming de logs MQTT derivado diretamente da telemetria do hook useArenaState
-  useEffect(() => {
-    if (!isOpen || !node || !isLiveStreamingLogs || !telemetry.lastPacketTime) return;
+      setLogs((prev) => {
+        if (prev.length > 0 && prev[prev.length - 1] === logMsg) return prev;
+        const next = [...prev, logMsg];
+        return next.length > 60 ? next.slice(next.length - 60) : next;
+      });
+    }, 3000);
 
-    const logMsg = `[${telemetry.lastPacketTime}] > {"cpu": "${telemetry.cpu}%", "temp": "${telemetry.temp}°C", "fps": ${telemetry.fps}, "bitrate_mbps": ${telemetry.bitrateMbps}, "ramdisk": "${node.ramdiskUsage}%", "status": "ok"}`;
-
-    setLogs((prev) => {
-      // Evita duplicar exatamente a mesma linha consecutiva
-      if (prev.length > 0 && prev[prev.length - 1] === logMsg) return prev;
-      const next = [...prev, logMsg];
-      if (next.length > 60) return next.slice(next.length - 60);
-      return next;
-    });
+    return () => clearInterval(interval);
   }, [isOpen, node, isLiveStreamingLogs, telemetry]);
 
   useEffect(() => {
@@ -149,7 +136,7 @@ export default function NodeDetailsModal({ isOpen, node, onClose }: NodeDetailsM
           </div>
         )}
 
-        {/* Live Telemetry KPI Bar - Powered by useArenaState */}
+        {/* Live Telemetry KPI Bar */}
         <div className="grid grid-cols-4 gap-2 p-4 bg-slate-950/40 border-b border-slate-800 text-center">
           <div className="p-2 rounded bg-slate-900 border border-slate-800">
             <p className="text-[10px] uppercase font-bold text-slate-400">CPU Load</p>
@@ -229,7 +216,7 @@ export default function NodeDetailsModal({ isOpen, node, onClose }: NodeDetailsM
                   </label>
                   <input
                     type="text"
-                    defaultValue={node.localIp}
+                    defaultValue={node.localIp || '192.168.15.100'}
                     className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
                   />
                   <p className="text-[11px] text-slate-500 mt-1">Endereço estático na rede local da arena.</p>
@@ -241,7 +228,7 @@ export default function NodeDetailsModal({ isOpen, node, onClose }: NodeDetailsM
                   </label>
                   <input
                     type="number"
-                    defaultValue={node.srtPort}
+                    defaultValue={node.srtPort || 6000}
                     className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
                   />
                 </div>
@@ -253,11 +240,9 @@ export default function NodeDetailsModal({ isOpen, node, onClose }: NodeDetailsM
                   <div className="p-2.5 rounded bg-slate-900 border border-slate-800 text-xs text-slate-300 space-y-1">
                     <div className="flex justify-between font-mono">
                       <span>Quadra 1 - Central:</span>
-                      <span className="text-emerald-400">rtsp://192.168.1.201:554/ch0</span>
-                    </div>
-                    <div className="flex justify-between font-mono">
-                      <span>Quadra 1 - Gol Esquerdo:</span>
-                      <span className="text-emerald-400">rtsp://192.168.1.202:554/ch0</span>
+                      <span className="text-emerald-400">
+                        {node.localIp ? `rtsp://${node.localIp}:554/stream1` : 'rtsp://192.168.15.51:554/stream1'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -299,7 +284,7 @@ export default function NodeDetailsModal({ isOpen, node, onClose }: NodeDetailsM
 
                 <button
                   type="button"
-                  onClick={() => handleTriggerAction('Limpar Ramdisk Buffer')}
+                  onClick={() => handleTriggerAction('Limpar Buffer de Replays')}
                   className="p-3.5 bg-slate-950/60 border border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-500/5 rounded-lg text-left transition-all group"
                 >
                   <div className="w-8 h-8 rounded bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 group-hover:text-emerald-500 mb-2">
@@ -309,7 +294,7 @@ export default function NodeDetailsModal({ isOpen, node, onClose }: NodeDetailsM
                     Limpar Buffer RAM
                   </h4>
                   <p className="text-[11px] text-slate-400 mt-1">
-                    Esvazia a partição tmpfs /dev/shm de replays.
+                    Esvazia a partição temporária de replays.
                   </p>
                 </button>
 
@@ -325,30 +310,30 @@ export default function NodeDetailsModal({ isOpen, node, onClose }: NodeDetailsM
                     Recarregar Node-RED
                   </h4>
                   <p className="text-[11px] text-slate-400 mt-1">
-                    Sincroniza gatilhos dos botões físicos USB.
+                    Sincroniza gatilhos dos botões físicos.
                   </p>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => handleTriggerAction('Testar Upload AWS S3')}
+                  onClick={() => handleTriggerAction('Testar Conectividade Cloud')}
                   className="p-3.5 bg-slate-950/60 border border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-500/5 rounded-lg text-left transition-all group"
                 >
                   <div className="w-8 h-8 rounded bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 group-hover:text-emerald-500 mb-2">
                     <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
                   </div>
                   <h4 className="text-xs font-bold text-slate-200 group-hover:text-emerald-400">
-                    Testar Bucket S3
+                    Testar Conexão Cloud
                   </h4>
                   <p className="text-[11px] text-slate-400 mt-1">
-                    Valida credenciais IAM e latência do bucket.
+                    Valida upload e latência com os servidores centrais.
                   </p>
                 </button>
               </div>
             </div>
           )}
 
-          {/* Tab 3: MQTT Terminal Logs - Streaming from useArenaState */}
+          {/* Tab 3: MQTT Terminal Logs */}
           {activeTab === 'logs' && (
             <div className="space-y-3 animate-in fade-in">
               <div className="flex items-center justify-between">
@@ -400,7 +385,7 @@ export default function NodeDetailsModal({ isOpen, node, onClose }: NodeDetailsM
         {/* Modal Footer */}
         <div className="p-4 border-t border-slate-800 bg-slate-950/80 flex justify-between items-center">
           <span className="text-xs text-slate-500 font-mono">
-            Último pacote MQTT: {telemetry.lastPacketTime || node.lastHeartbeat}
+            Último pacote MQTT: {telemetry.lastPacketTime || node.lastHeartbeat || 'Hoje'}
           </span>
           <button
             type="button"

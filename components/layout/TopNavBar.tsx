@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { UserRole } from './SideNavBar';
+import SportsReviewLogo from '@/components/common/SportsReviewLogo';
 
 interface TopNavBarProps {
   role: UserRole;
@@ -22,12 +23,7 @@ export default function TopNavBar({
       {/* Left side: Brand on mobile & status badge */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5 md:hidden">
-          <span className="material-symbols-outlined text-orange-500 text-2xl">
-            sports_soccer
-          </span>
-          <span className="text-sm font-bold text-orange-500 font-['Sora'] tracking-tight">
-            SPORTS REVIEW
-          </span>
+          <SportsReviewLogo variant="compact" size="xs" />
         </div>
 
         {/* Edge MQTT Status Indicator */}

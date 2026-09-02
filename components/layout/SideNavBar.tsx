@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import SportsReviewLogo, { SportsReviewIcon } from '@/components/common/SportsReviewLogo';
 
 export type UserRole = 'admin' | 'tenant';
 
@@ -48,26 +49,19 @@ export default function SideNavBar({
       <div
         id="sideNavRoleSwitcher"
         onClick={onRoleToggle}
-        className="mb-8 px-3 py-2 rounded-lg bg-slate-950/60 border border-slate-800/80 flex justify-between items-center cursor-pointer group hover:border-orange-500/40 transition-colors"
+        className="mb-8 p-3 rounded-xl bg-slate-950/70 border border-slate-800/90 flex justify-between items-center cursor-pointer group hover:border-orange-500/50 transition-all shadow-md"
         title="Clique para alternar perfil (Admin / Tenant)"
       >
-        <div>
-          <div className="flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-orange-500 text-[18px]">
-              sports_soccer
-            </span>
-            <h2 className="text-sm font-bold tracking-tight text-orange-500 font-['Sora'] uppercase">
-              Sports Review
-            </h2>
-          </div>
-          <p className="text-xs text-slate-400 font-medium mt-0.5" id="roleLabel">
-            Perfil: <span className="text-slate-200 font-semibold">{role === 'admin' ? 'Super Admin' : 'Dono da Quadra'}</span>
+        <div className="space-y-1.5">
+          <SportsReviewLogo variant="compact" size="xs" />
+          <p className="text-[11px] text-slate-400 font-medium pl-0.5" id="roleLabel">
+            Perfil: <span className="text-orange-400 font-semibold">{role === 'admin' ? 'Super Admin' : 'Dono da Quadra'}</span>
           </p>
         </div>
         <button
           type="button"
           aria-label="Alternar papel"
-          className="p-1 rounded bg-slate-800 text-slate-400 group-hover:text-orange-500 group-hover:bg-slate-700 transition-colors"
+          className="p-1.5 rounded-lg bg-slate-800 text-slate-400 group-hover:text-orange-500 group-hover:bg-slate-700 transition-colors shadow-sm"
         >
           <span className="material-symbols-outlined text-[18px]">swap_horiz</span>
         </button>
@@ -124,9 +118,9 @@ export default function SideNavBar({
             <div className="p-2.5 rounded bg-slate-950/60 border border-slate-800 text-xs space-y-1">
               <div className="flex items-center justify-between text-slate-400">
                 <span className="font-semibold text-slate-300">Arena Paranaguá</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
+                <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
               </div>
-              <p className="text-[11px] text-slate-400 font-mono">Edge: node-pr-112 (Online)</p>
+              <p className="text-[11px] text-slate-400 font-mono">Edge: node-pr-112 (Standby)</p>
             </div>
           </div>
         )}

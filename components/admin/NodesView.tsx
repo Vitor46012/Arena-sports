@@ -1,89 +1,86 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import NodeDetailsModal, { NodeData } from './NodeDetailsModal';
 
-export const INITIAL_NODES_DATA: NodeData[] = [
-  {
-    id: 'node-1',
-    nodeId: 'node-pr-112',
-    arena: 'Arena Society Paranaguá',
-    mqttStatus: 'online',
-    droppedFrames: 0.05,
-    ramdiskUsage: 15,
-    smartSsdLife: 98,
-    localIp: '192.168.1.105',
-    srtPort: 9000,
-    courtsCount: 2,
-    lastHeartbeat: 'Agora mesmo',
-  },
-  {
-    id: 'node-2',
-    nodeId: 'node-sp-004',
-    arena: 'Clube Pinheiros',
-    mqttStatus: 'online',
-    droppedFrames: 1.2,
-    ramdiskUsage: 78,
-    smartSsdLife: 92,
-    localIp: '192.168.10.40',
-    srtPort: 9002,
-    courtsCount: 4,
-    lastHeartbeat: '2s atrás',
-  },
-  {
-    id: 'node-3',
-    nodeId: 'node-mg-088',
-    arena: 'Complexo Esportivo BH',
-    mqttStatus: 'offline',
-    droppedFrames: 15.4,
-    ramdiskUsage: 95,
-    smartSsdLife: 89,
-    localIp: '10.0.0.88',
-    srtPort: 9004,
-    courtsCount: 2,
-    lastHeartbeat: '14 min atrás',
-  },
-  {
-    id: 'node-4',
-    nodeId: 'node-rj-021',
-    arena: 'Quadras Gávea',
-    mqttStatus: 'online',
-    droppedFrames: 0.0,
-    ramdiskUsage: 8,
-    smartSsdLife: 45,
-    localIp: '192.168.0.21',
-    srtPort: 9006,
-    courtsCount: 1,
-    lastHeartbeat: 'Agora mesmo',
-  },
-  {
-    id: 'node-5',
-    nodeId: 'node-sc-019',
-    arena: 'Arena Joinville Beach & Fut',
-    mqttStatus: 'warning',
-    droppedFrames: 3.8,
-    ramdiskUsage: 84,
-    smartSsdLife: 96,
-    localIp: '192.168.2.19',
-    srtPort: 9008,
-    courtsCount: 3,
-    lastHeartbeat: '4s atrás',
-  },
-];
+export interface EdgeNodeWithArena {
+  id: string;
+  nodeId: string;
+  macAddress: string;
+  mqttToken: string;
+  status: 'ONLINE' | 'OFFLINE' | 'WARNING';
+  localIp: string | null;
+  srtPort: number;
+  cpuUsage: number | null;
+  temperature: number | null;
+  fps: number | null;
+  bitrateMbps: number | null;
+  lastPing: string | null;
+  arenaId: string;
+  arena: {
+    id: string;
+    name: string;
+    cnpj?: string | null;
+  };
+}
 
 interface NodesViewProps {
   onDeployClick?: () => void;
 }
 
 export default function NodesView({ onDeployClick }: NodesViewProps) {
-  const [nodes, setNodes] = useState<NodeData[]>(INITIAL_NODES_DATA);
+  const [nodes, setNodes] = useState<EdgeNodeWithArena[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterOfflineOnly, setFilterOfflineOnly] = useState(false);
   const [selectedNode, setSelectedNode] = useState<NodeData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleOpenDetails = (node: NodeData) => {
-    setSelectedNode(node);
+  useEffect(() => {
+    let isMounted = true;
+    const fetchNodes = async () => {
+      try {
+        setIsLoading(true);
+        const res = await fetch('/api/nodes', {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        });
+        if (!res.ok) {
+          throw new Error(`Erro na API (${res.status})`);
+        }
+        const data = await res.json();
+        if (isMounted && Array.isArray(data)) {
+          setNodes(data);
+        }
+      } catch (err) {
+        console.error('Falha ao carregar nós Edge:', err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    fetchNodes();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleOpenDetails = (node: EdgeNodeWithArena) => {
+    // Mapear dados para a interface do modal
+    const modalData: NodeData = {
+      id: node.id,
+      nodeId: node.nodeId,
+      arena: node.arena?.name || 'Arena Sem Vínculo',
+      mqttStatus: (node.status?.toLowerCase() as 'online' | 'offline' | 'warning') || 'offline',
+      droppedFrames: node.fps && node.fps < 30 ? Number(((30 - node.fps) * 0.5).toFixed(2)) : 0.05,
+      ramdiskUsage: 25,
+      smartSsdLife: 95,
+      localIp: node.localIp || '192.168.1.100',
+      srtPort: node.srtPort || 6000,
+      courtsCount: 2,
+      lastHeartbeat: node.lastPing ? new Date(node.lastPing).toLocaleTimeString('pt-BR') : 'Sem sinal',
+    };
+    setSelectedNode(modalData);
     setIsModalOpen(true);
   };
 
@@ -93,16 +90,18 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
   };
 
   const filteredNodes = nodes.filter((n) => {
+    const arenaName = n.arena?.name || '';
     const matchSearch =
-      n.arena.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      n.nodeId.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchOffline = filterOfflineOnly ? n.mqttStatus === 'offline' : true;
+      arenaName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      n.nodeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      n.macAddress.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchOffline = filterOfflineOnly ? n.status === 'OFFLINE' : true;
     return matchSearch && matchOffline;
   });
 
-  const totalOnline = nodes.filter((n) => n.mqttStatus === 'online').length;
-  const totalWarning = nodes.filter((n) => n.mqttStatus === 'warning').length;
-  const totalOffline = nodes.filter((n) => n.mqttStatus === 'offline').length;
+  const totalOnline = nodes.filter((n) => n.status === 'ONLINE').length;
+  const totalWarning = nodes.filter((n) => n.status === 'WARNING').length;
+  const totalOffline = nodes.filter((n) => n.status === 'OFFLINE').length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -137,7 +136,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
             <span className="material-symbols-outlined text-slate-500 text-[18px]">dns</span>
           </div>
           <p className="text-2xl font-bold text-slate-100 font-['Sora'] mt-2">
-            {nodes.length}
+            {isLoading ? '...' : nodes.length}
           </p>
           <p className="text-[11px] text-slate-500 mt-0.5 font-mono">100% instâncias N100</p>
         </div>
@@ -148,7 +147,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
             <span className="material-symbols-outlined text-emerald-500 text-[18px]">check_circle</span>
           </div>
           <p className="text-2xl font-bold text-emerald-400 font-['Sora'] mt-2">
-            {totalOnline}
+            {isLoading ? '...' : totalOnline}
           </p>
           <p className="text-[11px] text-emerald-500/80 mt-0.5 font-mono">Sinal RTSP Estável</p>
         </div>
@@ -159,7 +158,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
             <span className="material-symbols-outlined text-orange-500 text-[18px]">warning</span>
           </div>
           <p className="text-2xl font-bold text-orange-400 font-['Sora'] mt-2">
-            {totalWarning}
+            {isLoading ? '...' : totalWarning}
           </p>
           <p className="text-[11px] text-orange-500/80 mt-0.5 font-mono">Ramdisk &gt; 80%</p>
         </div>
@@ -170,7 +169,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
             <span className="material-symbols-outlined text-red-500 text-[18px]">error</span>
           </div>
           <p className="text-2xl font-bold text-red-400 font-['Sora'] mt-2">
-            {totalOffline}
+            {isLoading ? '...' : totalOffline}
           </p>
           <p className="text-[11px] text-red-500/80 mt-0.5 font-mono">Sem MQTT Heartbeat</p>
         </div>
@@ -187,7 +186,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar Node ID ou Arena..."
+            placeholder="Buscar Node ID, MAC ou Arena..."
             className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-4 py-2.5 text-xs text-slate-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all"
           />
           {searchTerm && (
@@ -231,17 +230,17 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
               <th className="py-3 px-4 text-[11px] font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap font-['Inter']">
                 Node ID
               </th>
-              <th className="py-3 px-4 text-[11px] font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap text-center font-['Inter']">
-                Status MQTT
-              </th>
-              <th className="py-3 px-4 text-[11px] font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap text-right font-['Inter']">
-                Dropped Frames
-              </th>
               <th className="py-3 px-4 text-[11px] font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap font-['Inter']">
-                Ramdisk Usage
+                MAC Address
+              </th>
+              <th className="py-3 px-4 text-[11px] font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap text-center font-['Inter']">
+                Status
               </th>
               <th className="py-3 px-4 text-[11px] font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap text-right font-['Inter']">
-                S.M.A.R.T SSD Life
+                IP Local
+              </th>
+              <th className="py-3 px-4 text-[11px] font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap text-right font-['Inter']">
+                Porta SRT
               </th>
               <th className="py-3 px-4 text-[11px] font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap text-right font-['Inter']">
                 Ações
@@ -249,7 +248,18 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
             </tr>
           </thead>
           <tbody className="text-xs text-slate-200 divide-y divide-slate-800/60">
-            {filteredNodes.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={7} className="text-center py-12 text-slate-400">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <span className="material-symbols-outlined text-3xl text-orange-500 animate-spin">
+                      sync
+                    </span>
+                    <p className="font-mono text-xs text-slate-400">Carregando nós Edge do PostgreSQL...</p>
+                  </div>
+                </td>
+              </tr>
+            ) : filteredNodes.length === 0 ? (
               <tr>
                 <td colSpan={7} className="text-center py-10 text-slate-400">
                   <div className="flex flex-col items-center justify-center gap-2">
@@ -260,9 +270,9 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
               </tr>
             ) : (
               filteredNodes.map((node) => {
-                const isOnline = node.mqttStatus === 'online';
-                const isWarning = node.mqttStatus === 'warning';
-                const isOffline = node.mqttStatus === 'offline';
+                const isOnline = node.status === 'ONLINE';
+                const isWarning = node.status === 'WARNING';
+                const isOffline = node.status === 'OFFLINE';
 
                 return (
                   <tr
@@ -270,13 +280,13 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
                     id={`node-row-${node.nodeId}`}
                     className="hover:bg-slate-800/40 transition-colors group"
                   >
-                    {/* Arena Name */}
+                    {/* Arena Name (via include) */}
                     <td className="py-3.5 px-4 font-semibold text-slate-100 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-slate-500 text-[18px]">
                           stadium
                         </span>
-                        <span>{node.arena}</span>
+                        <span>{node.arena?.name || 'Arena Sem Vínculo'}</span>
                       </div>
                     </td>
 
@@ -287,7 +297,14 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
                       </span>
                     </td>
 
-                    {/* MQTT Status */}
+                    {/* MAC Address */}
+                    <td className="py-3.5 px-4 font-mono text-[11px] text-slate-300 whitespace-nowrap">
+                      <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800/80 text-orange-400/90 font-bold">
+                        {node.macAddress}
+                      </span>
+                    </td>
+
+                    {/* Status */}
                     <td className="py-3.5 px-4 text-center whitespace-nowrap">
                       <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-950/80 border border-slate-800">
                         <span
@@ -304,60 +321,19 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
                             isOnline ? 'text-emerald-400' : isWarning ? 'text-orange-400' : 'text-red-400'
                           }`}
                         >
-                          {node.mqttStatus}
+                          {node.status}
                         </span>
                       </div>
                     </td>
 
-                    {/* Dropped Frames */}
-                    <td className="py-3.5 px-4 text-right font-mono whitespace-nowrap">
-                      <span
-                        className={`font-semibold ${
-                          node.droppedFrames > 5
-                            ? 'text-red-400 font-bold'
-                            : node.droppedFrames > 1
-                            ? 'text-orange-400'
-                            : 'text-slate-300'
-                        }`}
-                      >
-                        {node.droppedFrames.toFixed(2)}%
-                      </span>
+                    {/* IP Local */}
+                    <td className="py-3.5 px-4 text-right font-mono whitespace-nowrap text-slate-300">
+                      {node.localIp || '192.168.1.100'}
                     </td>
 
-                    {/* Ramdisk Usage with Bar */}
-                    <td className="py-3.5 px-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full transition-all duration-500 ${
-                              node.ramdiskUsage > 85
-                                ? 'bg-red-500'
-                                : node.ramdiskUsage > 60
-                                ? 'bg-orange-500'
-                                : 'bg-emerald-500'
-                            }`}
-                            style={{ width: `${node.ramdiskUsage}%` }}
-                          />
-                        </div>
-                        <span className="font-mono text-[11px] text-slate-400 w-8">
-                          {node.ramdiskUsage}%
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* S.M.A.R.T SSD Life */}
-                    <td className="py-3.5 px-4 text-right font-mono whitespace-nowrap">
-                      <span
-                        className={`font-semibold ${
-                          node.smartSsdLife < 50
-                            ? 'text-orange-400'
-                            : node.smartSsdLife < 30
-                            ? 'text-red-400'
-                            : 'text-emerald-400'
-                        }`}
-                      >
-                        {node.smartSsdLife}%
-                      </span>
+                    {/* SRT Port */}
+                    <td className="py-3.5 px-4 text-right font-mono whitespace-nowrap text-slate-400">
+                      {node.srtPort}
                     </td>
 
                     {/* Actions */}

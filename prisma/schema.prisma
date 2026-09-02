@@ -137,7 +137,8 @@ model Match {
 model VideoClip {
   id           String      @id @default(uuid())
   machineName  String      @unique // Ex: "LANCE_20260831_1942"
-  s3Key        String      // Caminho no bucket S3 (ex: "pr112/2026-08-31/LANCE_...mp4")
+  driveFileId  String?     // ID do arquivo no Google Drive (Service Account)
+  s3Key        String?     // Caminho legado S3 (opcional)
   s3Url        String?     // URL de streaming/download
   duration     String      @default("00:30") // Duração formatada ou em segundos
   resolution   String      @default("1920x1080")

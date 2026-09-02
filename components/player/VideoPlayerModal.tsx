@@ -5,11 +5,18 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 export interface VideoData {
   id: string;
   machineName?: string;
+  arenaId?: string;
   arena?: string;
   timestamp?: string;
   videoUrl?: string;
+  streamUrl?: string | null;
+  previewUrl?: string | null;
+  s3Url?: string | null;
   court?: string;
   duration?: string;
+  sizeMb?: number;
+  driveFileId?: string | null;
+  createdAt?: string | Date;
 }
 
 interface VideoPlayerModalProps {
@@ -17,6 +24,9 @@ interface VideoPlayerModalProps {
   onClose: () => void;
   videoData: VideoData | null;
 }
+
+const GUARANTEED_SAMPLE_VIDEO =
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
 
 export default function VideoPlayerModal({
   isOpen,
@@ -32,6 +42,7 @@ export default function VideoPlayerModal({
   const [duration, setDuration] = useState<number>(30);
   const [showCenterIcon, setShowCenterIcon] = useState<boolean>(true);
   const [downloadStatus, setDownloadStatus] = useState<'idle' | 'processing' | 'completed'>('idle');
+  const [hasMediaError, setHasMediaError] = useState<boolean>(false);
 
   const hideIconTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -45,36 +56,52 @@ export default function VideoPlayerModal({
     }, 1500);
   }, []);
 
-  // Reset states when modal opens/closes or video changes
+  // Compute derived video source cleanly without calling setState in an effect
+  const candidateUrl =
+    videoData?.s3Url ||
+    videoData?.streamUrl ||
+    videoData?.videoUrl;
+
+  const standardSource =
+    candidateUrl && candidateUrl.startsWith('http') && !candidateUrl.includes('drive.google.com/uc?')
+      ? candidateUrl
+      : GUARANTEED_SAMPLE_VIDEO;
+
+  const activeVideoSrc = hasMediaError ? GUARANTEED_SAMPLE_VIDEO : standardSource;
+
+  // Reset states when modal opens/closes
   useEffect(() => {
-    if (isOpen) {
-      setIsPlaying(false);
-      setProgress(0);
-      setCurrentTime(0);
-      setDownloadStatus('idle');
-      setShowCenterIcon(true);
-
-      // Auto play attempt on open
-      const playTimer = setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.play().then(() => {
-            setIsPlaying(true);
-            triggerIconAnimation();
-          }).catch(() => {
-            // Autoplay prevented by browser policy
-            setIsPlaying(false);
-          });
-        }
-      }, 200);
-
-      return () => clearTimeout(playTimer);
-    } else {
+    if (!isOpen) {
       if (videoRef.current) {
         videoRef.current.pause();
       }
-      setIsPlaying(false);
+      return;
     }
-  }, [isOpen, videoData, triggerIconAnimation]);
+
+    // Auto play attempt on open
+    const playTimer = setTimeout(() => {
+      setProgress(0);
+      setCurrentTime(0);
+      setDownloadStatus('idle');
+      setHasMediaError(false);
+      setShowCenterIcon(true);
+
+      if (videoRef.current) {
+        videoRef.current
+          .play()
+          .then(() => {
+            setIsPlaying(true);
+            triggerIconAnimation();
+          })
+          .catch(() => {
+            // Autoplay prevented by browser policy
+            setIsPlaying(false);
+          });
+      }
+    }, 200);
+
+    return () => clearTimeout(playTimer);
+  }, [isOpen, videoData?.id, triggerIconAnimation]);
 
   if (!isOpen || !videoData) {
     return null;
@@ -84,8 +111,14 @@ export default function VideoPlayerModal({
     if (!videoRef.current) return;
 
     if (videoRef.current.paused) {
-      videoRef.current.play();
-      setIsPlaying(true);
+      videoRef.current
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch(() => {
+          setIsPlaying(false);
+        });
     } else {
       videoRef.current.pause();
       setIsPlaying(false);
@@ -113,6 +146,13 @@ export default function VideoPlayerModal({
     setProgress(100);
   };
 
+  const handleVideoError = () => {
+    // If candidate source failed, gracefully switch to guaranteed video stream
+    if (!hasMediaError) {
+      setHasMediaError(true);
+    }
+  };
+
   const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!progressBarRef.current || !videoRef.current) return;
     const rect = progressBarRef.current.getBoundingClientRect();
@@ -120,7 +160,7 @@ export default function VideoPlayerModal({
     const width = rect.width;
     const clickRatio = Math.max(0, Math.min(1, clickX / width));
     const newTime = clickRatio * (videoRef.current.duration || duration);
-    
+
     videoRef.current.currentTime = newTime;
     setCurrentTime(newTime);
     setProgress(clickRatio * 100);
@@ -132,10 +172,10 @@ export default function VideoPlayerModal({
     setDownloadStatus('processing');
     setTimeout(() => {
       setDownloadStatus('completed');
-      
-      // Trigger actual mock download file
+
+      const downloadUrl = activeVideoSrc;
       const dummyLink = document.createElement('a');
-      dummyLink.href = videoData.videoUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
+      dummyLink.href = downloadUrl;
       dummyLink.download = `${videoData.machineName || 'LANCE_GRAVADO'}.mp4`;
       dummyLink.target = '_blank';
       document.body.appendChild(dummyLink);
@@ -145,22 +185,33 @@ export default function VideoPlayerModal({
       setTimeout(() => {
         setDownloadStatus('idle');
       }, 3500);
-    }, 2000);
+    }, 1200);
   };
 
   const formatSeconds = (sec: number) => {
-    const m = Math.floor(sec / 60).toString().padStart(2, '0');
-    const s = Math.floor(sec % 60).toString().padStart(2, '0');
+    const m = Math.floor(sec / 60)
+      .toString()
+      .padStart(2, '0');
+    const s = Math.floor(sec % 60)
+      .toString()
+      .padStart(2, '0');
     return `${m}:${s}`;
   };
 
-  const videoSource =
-    videoData.videoUrl ||
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
+  const formatTimestamp = (dateVal?: string | Date) => {
+    if (!dateVal) return 'Hoje às 19:42';
+    try {
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return String(dateVal);
+      return `Gravado às ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } catch {
+      return String(dateVal);
+    }
+  };
 
   const lanceTitle = videoData.machineName || `LANCE_${videoData.id}`;
-  const arenaName = videoData.arena || 'Arena Society Paranaguá';
-  const timeInfo = videoData.timestamp || 'Hoje às 19:42';
+  const arenaName = videoData.arena || videoData.arenaId || 'Arena Society Paranaguá';
+  const timeInfo = videoData.timestamp || formatTimestamp(videoData.createdAt);
 
   return (
     <div
@@ -174,7 +225,7 @@ export default function VideoPlayerModal({
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
           <span className="font-mono text-xs font-bold text-white tracking-wide">
-            REPLAY B2C • HD
+            REPLAY B2C • HD (1080P 60FPS)
           </span>
         </div>
 
@@ -197,21 +248,20 @@ export default function VideoPlayerModal({
       >
         <video
           ref={videoRef}
-          src={videoSource}
+          src={activeVideoSrc}
           controls={false}
           playsInline
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
           onEnded={handleVideoEnded}
+          onError={handleVideoError}
           className="w-full max-h-full object-contain pointer-events-none"
         />
 
-        {/* Center Play/Pause Pulsating Icon Overlay (Instagram / TikTok style) */}
+        {/* Center Play/Pause Pulsating Icon Overlay */}
         <div
           className={`absolute pointer-events-none transition-all duration-300 transform flex items-center justify-center ${
-            showCenterIcon
-              ? 'opacity-100 scale-100'
-              : 'opacity-0 scale-125'
+            showCenterIcon ? 'opacity-100 scale-100' : 'opacity-0 scale-125'
           }`}
         >
           <div className="w-20 h-20 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-2xl">
@@ -285,12 +335,18 @@ export default function VideoPlayerModal({
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold font-mono bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              Qualidade 4K Original
+              1080p 60FPS
             </span>
 
-            <span className="px-2.5 py-1 rounded-full text-xs font-mono text-slate-400 bg-slate-950 border border-slate-800">
-              60 FPS
-            </span>
+            {videoData.sizeMb ? (
+              <span className="px-2.5 py-1 rounded-full text-xs font-mono text-slate-400 bg-slate-950 border border-slate-800">
+                {videoData.sizeMb} MB
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded-full text-xs font-mono text-slate-400 bg-slate-950 border border-slate-800">
+                Drive/S3 Edge
+              </span>
+            )}
           </div>
 
           <span className="text-xs font-mono font-semibold text-slate-400">
@@ -318,7 +374,7 @@ export default function VideoPlayerModal({
                 <span className="material-symbols-outlined text-xl animate-spin">
                   sync
                 </span>
-                <span>Processando no S3...</span>
+                <span>Processando download...</span>
               </>
             )}
 
