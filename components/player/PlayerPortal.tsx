@@ -32,9 +32,9 @@ interface PlayerPortalProps {
 export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps) {
   const [arenas, setArenas] = useState<ArenaItem[]>([]);
   const [selectedArena, setSelectedArena] = useState<string>('arena-pr-01');
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [selectedTime, setSelectedTime] = useState('19:00');
-  const [videos, setVideos] = useState<VideoClipItem[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toLocaleDateString('sv-SE'));
+  const [selectedTime, setSelectedTime] = useState<string>('19:00');
+  const [filteredClips, setFilteredClips] = useState<VideoClipItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [selectedVideo, setSelectedVideo] = useState<VideoData | null>(null);
   const [toast, setToast] = useState<{
@@ -91,49 +91,23 @@ export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps) {
     };
   }, []);
 
-  // Função para buscar vídeos na API
-  const fetchVideos = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (selectedArena) params.append('arenaId', selectedArena);
-      if (selectedDate) params.append('date', selectedDate);
-
-      const res = await fetch(`/api/videos?${params.toString()}`, {
-        headers: { Accept: 'application/json' },
-        cache: 'no-store',
-      });
-      if (!res.ok) {
-        throw new Error(`Erro na API (${res.status})`);
-      }
-      const contentType = res.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Resposta de vídeos não é JSON');
-      }
-      const data: VideoClipItem[] = await res.json();
-      setVideos(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Falha ao carregar lances:', err);
-      showToast('Falha ao conectar com o servidor de vídeos.', 'error', 'search');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedArena, selectedDate]);
-
-  // Consumo da API no carregamento inicial e quando filtros mudarem
-  useEffect(() => {
-    let isMounted = true;
-    const loadData = async () => {
+  // Função para buscar vídeos na API com os filtros selecionados
+  const fetchClips = useCallback(
+    async (targetDate?: string, targetArena?: string) => {
       setIsLoading(true);
       try {
+        const dateToUse = targetDate !== undefined ? targetDate : selectedDate;
+        const arenaToUse = targetArena !== undefined ? targetArena : selectedArena;
+
         const params = new URLSearchParams();
-        if (selectedArena) params.append('arenaId', selectedArena);
-        if (selectedDate) params.append('date', selectedDate);
+        if (dateToUse) params.append('date', dateToUse);
+        if (arenaToUse && arenaToUse !== 'all') params.append('arenaId', arenaToUse);
 
         const res = await fetch(`/api/videos?${params.toString()}`, {
           headers: { Accept: 'application/json' },
           cache: 'no-store',
         });
+
         if (!res.ok) {
           throw new Error(`Erro na API (${res.status})`);
         }
@@ -141,19 +115,58 @@ export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps) {
         if (!contentType || !contentType.includes('application/json')) {
           throw new Error('Resposta de vídeos não é JSON');
         }
+
         const data: VideoClipItem[] = await res.json();
-        if (isMounted) setVideos(Array.isArray(data) ? data : []);
+        const results = Array.isArray(data) ? data : [];
+        setFilteredClips(results);
       } catch (err) {
         console.error('Falha ao carregar lances:', err);
+        setFilteredClips([]);
+        showToast('Falha ao conectar com o servidor de vídeos.', 'error', 'search');
       } finally {
-        if (isMounted) setIsLoading(false);
+        setIsLoading(false);
+      }
+    },
+    [selectedDate, selectedArena]
+  );
+
+  // Carregamento inicial ao montar / quando a arena selecionada mudar
+  useEffect(() => {
+    let isMounted = true;
+    const loadInitialClips = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (selectedDate) params.append('date', selectedDate);
+        if (selectedArena && selectedArena !== 'all') params.append('arenaId', selectedArena);
+
+        const res = await fetch(`/api/videos?${params.toString()}`, {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        });
+
+        if (res.ok) {
+          const contentType = res.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const data: VideoClipItem[] = await res.json();
+            if (isMounted && Array.isArray(data)) {
+              setFilteredClips(data);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Falha ao carregar lances iniciais:', err);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
-    loadData();
+
+    loadInitialClips();
     return () => {
       isMounted = false;
     };
-  }, [selectedArena, selectedDate]);
+  }, [selectedDate, selectedArena]);
 
   const handleOpenVideo = (clip: VideoClipItem) => {
     const formattedTime = formatTime(clip.createdAt);
@@ -179,10 +192,40 @@ export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps) {
     });
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  // Dispara a busca dinâmica ao submeter o formulário / clicar no botão "BUSCAR LANCES"
+  const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    showToast('Buscando lances sincronizados no Drive...', 'cloud_sync', 'search');
-    fetchVideos();
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedDate) params.append('date', selectedDate);
+      if (selectedArena && selectedArena !== 'all') params.append('arenaId', selectedArena);
+
+      const res = await fetch(`/api/videos?${params.toString()}`, {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      });
+
+      if (!res.ok) {
+        throw new Error(`Erro na API (${res.status})`);
+      }
+
+      const data: VideoClipItem[] = await res.json();
+      const results = Array.isArray(data) ? data : [];
+      setFilteredClips(results);
+
+      if (results.length === 0) {
+        showToast('Nenhum lance gravado nesta data.', 'videocam_off', 'search');
+      } else {
+        showToast(`${results.length} lances encontrados!`, 'check_circle', 'search');
+      }
+    } catch (err) {
+      console.error('Falha ao buscar lances:', err);
+      setFilteredClips([]);
+      showToast('Falha ao conectar com o servidor de vídeos.', 'error', 'search');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleShare = (clip: VideoClipItem) => {
@@ -236,7 +279,7 @@ export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps) {
                 id="btnBackToAdmin"
                 onClick={onBackToDashboard}
                 title="Voltar para a Mesa de Operação / NOC"
-                className="p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-orange-500 transition-colors"
+                className="p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-orange-500 transition-colors cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[18px]">desktop_windows</span>
               </button>
@@ -272,7 +315,7 @@ export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps) {
                     id="selectArena"
                     value={selectedArena}
                     onChange={(e) => setSelectedArena(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg pl-9 pr-8 py-2.5 text-xs font-semibold appearance-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-colors"
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg pl-9 pr-8 py-2.5 text-xs font-semibold appearance-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-colors cursor-pointer"
                   >
                     {arenas.length > 0 ? (
                       arenas.map((arena) => (
@@ -281,7 +324,7 @@ export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps) {
                         </option>
                       ))
                     ) : (
-                      <option value="arena-pr-01">Carregando arenas...</option>
+                      <option value="arena-pr-01">Arena Society Paranaguá</option>
                     )}
                   </select>
                   <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[18px]">
@@ -305,7 +348,7 @@ export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps) {
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg pl-8 pr-2 py-2 text-xs font-semibold focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-colors [color-scheme:dark]"
+                      className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg pl-8 pr-2 py-2 text-xs font-semibold focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-colors [color-scheme:dark] cursor-pointer"
                     />
                   </div>
                 </div>
@@ -323,18 +366,18 @@ export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps) {
                       type="time"
                       value={selectedTime}
                       onChange={(e) => setSelectedTime(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg pl-8 pr-2 py-2 text-xs font-semibold focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-colors [color-scheme:dark]"
+                      className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg pl-8 pr-2 py-2 text-xs font-semibold focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-colors [color-scheme:dark] cursor-pointer"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Submit Button */}
+              {/* Submit Button: BUSCAR LANCES */}
               <button
                 type="submit"
                 id="btnSearchHighlights"
                 disabled={isLoading}
-                className="w-full bg-orange-500 hover:bg-orange-600 active:scale-[0.99] disabled:opacity-70 text-white font-bold text-xs py-3.5 rounded-lg uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 mt-1"
+                className="w-full bg-orange-500 hover:bg-orange-600 active:scale-[0.99] disabled:opacity-70 text-white font-bold text-xs py-3.5 rounded-lg uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 mt-1 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[18px]">
                   {isLoading ? 'sync' : 'search'}
@@ -350,7 +393,7 @@ export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps) {
               Lances Encontrados
             </h2>
             <span className="text-[11px] font-mono font-bold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2.5 py-0.5 rounded-full">
-              {isLoading ? 'Carregando...' : `${videos.length} cortes`}
+              {isLoading ? 'Carregando...' : `${filteredClips.length} cortes`}
             </span>
           </div>
 
@@ -360,7 +403,7 @@ export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps) {
               <div className="flex flex-col items-center justify-center py-6 gap-3">
                 <div className="w-10 h-10 border-3 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
                 <p className="text-xs font-mono text-slate-400 animate-pulse">
-                  Consultando lances gravados no Google Drive...
+                  Consultando lances gravados na data selecionada...
                 </p>
               </div>
 
@@ -381,24 +424,24 @@ export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps) {
           )}
 
           {/* Empty State */}
-          {!isLoading && videos.length === 0 && (
+          {!isLoading && filteredClips.length === 0 && (
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-8 text-center space-y-3">
               <div className="w-12 h-12 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
                 <span className="material-symbols-outlined text-2xl">videocam_off</span>
               </div>
-              <h3 className="font-semibold text-sm text-slate-200">
-                Nenhum lance encontrado
+              <h3 className="font-semibold text-sm text-slate-200 font-['Sora']">
+                Nenhum lance gravado nesta data
               </h3>
               <p className="text-xs text-slate-400 max-w-xs mx-auto">
-                Não encontramos vídeos para os filtros selecionados. Pressione o botão físico na quadra para gerar um novo corte.
+                Não encontramos vídeos para os filtros selecionados nesta data. Pressione o botão físico na quadra para gerar um novo corte.
               </p>
             </div>
           )}
 
           {/* Dynamic Highlights Feed */}
-          {!isLoading && videos.length > 0 && (
+          {!isLoading && filteredClips.length > 0 && (
             <div className="space-y-5">
-              {videos.map((clip) => {
+              {filteredClips.map((clip) => {
                 const timeString = formatTime(clip.createdAt);
                 const timeAgoString = formatTimeAgo(clip.createdAt);
                 const currentArenaName =
@@ -477,7 +520,7 @@ export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps) {
                           type="button"
                           id={`btnDownload-${clip.machineName}`}
                           onClick={() => handleOpenVideo(clip)}
-                          className="w-full bg-orange-500 hover:bg-orange-600 active:scale-[0.99] text-white font-bold text-xs py-3 rounded-lg flex items-center justify-center gap-2 shadow-md shadow-orange-500/20 transition-all uppercase tracking-wide"
+                          className="w-full bg-orange-500 hover:bg-orange-600 active:scale-[0.99] text-white font-bold text-xs py-3 rounded-lg flex items-center justify-center gap-2 shadow-md shadow-orange-500/20 transition-all uppercase tracking-wide cursor-pointer"
                         >
                           <span className="material-symbols-outlined text-[18px]">
                             play_circle
@@ -490,7 +533,7 @@ export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps) {
                           type="button"
                           id={`btnShare-${clip.machineName}`}
                           onClick={() => handleShare(clip)}
-                          className="w-full bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-slate-300 hover:text-white border border-slate-700/80 hover:border-slate-600 font-semibold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all"
+                          className="w-full bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-slate-300 hover:text-white border border-slate-700/80 hover:border-slate-600 font-semibold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
                         >
                           <span className="material-symbols-outlined text-[18px]">
                             share
