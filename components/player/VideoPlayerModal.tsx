@@ -1,401 +1,148 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useState } from 'react';
 
 export interface VideoData {
   id: string;
-  machineName?: string;
-  arenaId?: string;
-  arena?: string;
-  timestamp?: string;
-  videoUrl?: string;
-  streamUrl?: string | null;
-  previewUrl?: string | null;
-  s3Url?: string | null;
-  court?: string;
-  duration?: string;
+  machineName: string;
+  arena: string;
+  arenaId: string;
+  timestamp: string;
+  streamUrl: string;
+  duration: string;
   sizeMb?: number;
-  driveFileId?: string | null;
-  createdAt?: string | Date;
+  createdAt: string | Date;
 }
 
 interface VideoPlayerModalProps {
   isOpen: boolean;
-  onClose: () => void;
   videoData: VideoData | null;
+  onClose: () => void;
 }
 
-const GUARANTEED_SAMPLE_VIDEO =
-  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
-
-export default function VideoPlayerModal({
-  isOpen,
-  onClose,
-  videoData,
-}: VideoPlayerModalProps) {
+export default function VideoPlayerModal({ isOpen, videoData, onClose }: VideoPlayerModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const progressBarRef = useRef<HTMLDivElement>(null);
+  const [, setIsPlaying] = useState(true);
+  const [isDownloading, setIsDownloading] = useState(false);
 
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [progress, setProgress] = useState<number>(0);
-  const [currentTime, setCurrentTime] = useState<number>(0);
-  const [duration, setDuration] = useState<number>(30);
-  const [showCenterIcon, setShowCenterIcon] = useState<boolean>(true);
-  const [downloadStatus, setDownloadStatus] = useState<'idle' | 'processing' | 'completed'>('idle');
-  const [hasMediaError, setHasMediaError] = useState<boolean>(false);
+  if (!isOpen || !videoData) return null;
 
-  const hideIconTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const triggerIconAnimation = useCallback(() => {
-    setShowCenterIcon(true);
-    if (hideIconTimerRef.current) {
-      clearTimeout(hideIconTimerRef.current);
-    }
-    hideIconTimerRef.current = setTimeout(() => {
-      setShowCenterIcon(false);
-    }, 1500);
-  }, []);
-
-  // Compute derived video source cleanly without calling setState in an effect
-  const candidateUrl =
-    videoData?.s3Url ||
-    videoData?.streamUrl ||
-    videoData?.videoUrl;
-
-  const standardSource =
-    candidateUrl && candidateUrl.startsWith('http') && !candidateUrl.includes('drive.google.com/uc?')
-      ? candidateUrl
-      : GUARANTEED_SAMPLE_VIDEO;
-
-  const activeVideoSrc = hasMediaError ? GUARANTEED_SAMPLE_VIDEO : standardSource;
-
-  // Reset states when modal opens/closes
-  useEffect(() => {
-    if (!isOpen) {
-      if (videoRef.current) {
-        videoRef.current.pause();
-      }
-      return;
-    }
-
-    // Auto play attempt on open
-    const playTimer = setTimeout(() => {
-      setProgress(0);
-      setCurrentTime(0);
-      setDownloadStatus('idle');
-      setHasMediaError(false);
-      setShowCenterIcon(true);
-
-      if (videoRef.current) {
-        videoRef.current
-          .play()
-          .then(() => {
-            setIsPlaying(true);
-            triggerIconAnimation();
-          })
-          .catch(() => {
-            // Autoplay prevented by browser policy
-            setIsPlaying(false);
-          });
-      }
-    }, 200);
-
-    return () => clearTimeout(playTimer);
-  }, [isOpen, videoData?.id, triggerIconAnimation]);
-
-  if (!isOpen || !videoData) {
-    return null;
-  }
-
-  const togglePlayPause = () => {
+  const togglePlay = () => {
     if (!videoRef.current) return;
-
     if (videoRef.current.paused) {
-      videoRef.current
-        .play()
-        .then(() => {
-          setIsPlaying(true);
-        })
-        .catch(() => {
-          setIsPlaying(false);
-        });
+      videoRef.current.play();
+      setIsPlaying(true);
     } else {
       videoRef.current.pause();
       setIsPlaying(false);
     }
-    triggerIconAnimation();
   };
 
-  const handleTimeUpdate = () => {
-    if (!videoRef.current) return;
-    const current = videoRef.current.currentTime;
-    const total = videoRef.current.duration || 30;
-    setCurrentTime(current);
-    setDuration(total);
-    setProgress((current / total) * 100);
-  };
-
-  const handleLoadedMetadata = () => {
-    if (!videoRef.current) return;
-    setDuration(videoRef.current.duration || 30);
-  };
-
-  const handleVideoEnded = () => {
-    setIsPlaying(false);
-    setShowCenterIcon(true);
-    setProgress(100);
-  };
-
-  const handleVideoError = () => {
-    // If candidate source failed, gracefully switch to guaranteed video stream
-    if (!hasMediaError) {
-      setHasMediaError(true);
-    }
-  };
-
-  const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!progressBarRef.current || !videoRef.current) return;
-    const rect = progressBarRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const width = rect.width;
-    const clickRatio = Math.max(0, Math.min(1, clickX / width));
-    const newTime = clickRatio * (videoRef.current.duration || duration);
-
-    videoRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
-    setProgress(clickRatio * 100);
-  };
-
-  const handleDownload = () => {
-    if (downloadStatus !== 'idle') return;
-
-    setDownloadStatus('processing');
-    setTimeout(() => {
-      setDownloadStatus('completed');
-
-      const downloadUrl = activeVideoSrc;
-      const dummyLink = document.createElement('a');
-      dummyLink.href = downloadUrl;
-      dummyLink.download = `${videoData.machineName || 'LANCE_GRAVADO'}.mp4`;
-      dummyLink.target = '_blank';
-      document.body.appendChild(dummyLink);
-      dummyLink.click();
-      document.body.removeChild(dummyLink);
-
-      setTimeout(() => {
-        setDownloadStatus('idle');
-      }, 3500);
-    }, 1200);
-  };
-
-  const formatSeconds = (sec: number) => {
-    const m = Math.floor(sec / 60)
-      .toString()
-      .padStart(2, '0');
-    const s = Math.floor(sec % 60)
-      .toString()
-      .padStart(2, '0');
-    return `${m}:${s}`;
-  };
-
-  const formatTimestamp = (dateVal?: string | Date) => {
-    if (!dateVal) return 'Hoje às 19:42';
+  const handleDownload = async () => {
     try {
-      const d = new Date(dateVal);
-      if (isNaN(d.getTime())) return String(dateVal);
-      return `Gravado às ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      setIsDownloading(true);
+      const response = await fetch(videoData.streamUrl);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `${videoData.machineName}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
     } catch {
-      return String(dateVal);
+      window.open(videoData.streamUrl, '_blank');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
-  const lanceTitle = videoData.machineName || `LANCE_${videoData.id}`;
-  const arenaName = videoData.arena || videoData.arenaId || 'Arena Society Paranaguá';
-  const timeInfo = videoData.timestamp || formatTimestamp(videoData.createdAt);
+  const handleShare = () => {
+    const shareUrl = window.location.href;
+    if (navigator.share) {
+      navigator.share({
+        title: `Lance ${videoData.machineName} - Sports Review`,
+        text: `Confira meu lance gravado na ${videoData.arena}!`,
+        url: shareUrl,
+      }).catch(() => {});
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(shareUrl);
+      alert('Link do lance copiado para a área de transferência!');
+    }
+  };
 
   return (
-    <div
-      id="videoPlayerModal"
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-[100] bg-black flex flex-col justify-center select-none overflow-hidden animate-in fade-in duration-200"
-    >
-      {/* Top Floating Close Button & Header */}
-      <div className="absolute top-0 inset-x-0 z-30 flex items-center justify-between px-4 py-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent">
-        <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-          <span className="font-mono text-xs font-bold text-white tracking-wide">
-            REPLAY B2C • HD (1080P 60FPS)
-          </span>
-        </div>
-
-        <button
-          type="button"
-          id="btnFloatingClose"
-          onClick={onClose}
-          aria-label="Fechar reprodutor"
-          className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-slate-700/80 text-slate-200 hover:text-white hover:bg-slate-800 flex items-center justify-center transition-all active:scale-90"
-        >
-          <span className="material-symbols-outlined text-2xl">close</span>
-        </button>
-      </div>
-
-      {/* Video Viewport Area (Interactive Click for Play/Pause) */}
-      <div
-        id="videoClickArea"
-        onClick={togglePlayPause}
-        className="relative w-full flex-1 flex items-center justify-center bg-black cursor-pointer overflow-hidden pb-48"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div 
+        className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
       >
-        <video
-          ref={videoRef}
-          src={activeVideoSrc}
-          controls={false}
-          playsInline
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
-          onEnded={handleVideoEnded}
-          onError={handleVideoError}
-          className="w-full max-h-full object-contain pointer-events-none"
-        />
-
-        {/* Center Play/Pause Pulsating Icon Overlay */}
-        <div
-          className={`absolute pointer-events-none transition-all duration-300 transform flex items-center justify-center ${
-            showCenterIcon ? 'opacity-100 scale-100' : 'opacity-0 scale-125'
-          }`}
-        >
-          <div className="w-20 h-20 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-2xl">
-            <span className="material-symbols-outlined text-5xl icon-fill ml-1">
-              {isPlaying ? 'pause' : 'play_arrow'}
-            </span>
-          </div>
-        </div>
-
-        {/* Progress Bar & Timestamp (Positioned right above bottom sheet) */}
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="absolute bottom-48 inset-x-0 px-4 pb-2 z-20 space-y-1.5 bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-6"
-        >
-          <div
-            ref={progressBarRef}
-            onClick={handleProgressBarClick}
-            className="w-full h-2.5 bg-slate-800/80 hover:h-3.5 rounded-full cursor-pointer relative overflow-hidden transition-all group"
-          >
-            {/* Filled Progress */}
-            <div
-              className="h-full bg-orange-500 rounded-full relative transition-all"
-              style={{ width: `${progress}%` }}
-            >
-              <span className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-md scale-0 group-hover:scale-100 transition-transform" />
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center text-[11px] font-mono text-slate-300 px-0.5">
-            <span>{formatSeconds(currentTime)}</span>
-            <span className="text-slate-500">/</span>
-            <span>{formatSeconds(duration)}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Sheet Information & Download Panel */}
-      <div
-        id="bottomSheetPanel"
-        className="absolute bottom-0 inset-x-0 z-30 bg-slate-900 border-t border-slate-800 rounded-t-3xl p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] space-y-5 animate-in slide-in-from-bottom duration-300"
-      >
-        {/* Header: Title and Close Button */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <h3 className="font-mono text-base md:text-lg font-bold text-slate-100 tracking-tight">
-              {lanceTitle}
+        {/* Top Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-900/50">
+          <div>
+            <h3 className="font-mono text-sm font-bold text-slate-100 flex items-center gap-2">
+              {videoData.machineName}
+              <span className="px-2 py-0.5 rounded bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[10px] font-sans font-bold">
+                1080p 60FPS
+              </span>
             </h3>
-            <p className="text-xs text-slate-400 flex items-center gap-1.5 font-medium">
-              <span className="material-symbols-outlined text-[16px] text-orange-500">
-                stadium
-              </span>
-              <span>{arenaName}</span>
-              <span>•</span>
-              <span className="text-slate-300 font-mono">{timeInfo}</span>
-            </p>
+            <p className="text-xs text-slate-400 mt-0.5">{videoData.timestamp}</p>
           </div>
-
           <button
-            type="button"
-            id="btnCloseBottomSheet"
             onClick={onClose}
-            aria-label="Fechar painel"
-            className="p-2 rounded-full bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors"
+            className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
           >
-            <span className="material-symbols-outlined text-xl">close</span>
+            <span className="material-symbols-outlined text-lg">close</span>
           </button>
         </div>
 
-        {/* Badges and Details Row */}
-        <div className="flex items-center justify-between pt-1">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold font-mono bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              1080p 60FPS
-            </span>
+        {/* Video Player */}
+        <div 
+          onClick={togglePlay}
+          className="relative aspect-video bg-black flex items-center justify-center cursor-pointer"
+        >
+          <video
+            ref={videoRef}
+            src={videoData.streamUrl}
+            controls
+            autoPlay
+            playsInline
+            className="w-full h-full object-contain"
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+          />
+        </div>
 
-            {videoData.sizeMb ? (
-              <span className="px-2.5 py-1 rounded-full text-xs font-mono text-slate-400 bg-slate-950 border border-slate-800">
-                {videoData.sizeMb} MB
-              </span>
-            ) : (
-              <span className="px-2.5 py-1 rounded-full text-xs font-mono text-slate-400 bg-slate-950 border border-slate-800">
-                Drive/S3 Edge
-              </span>
-            )}
+        {/* Footer Actions */}
+        <div className="p-4 bg-slate-900/80 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            Cloudflare R2 Edge CDN
+            {videoData.sizeMb ? ` • ${videoData.sizeMb} MB` : ''}
           </div>
 
-          <span className="text-xs font-mono font-semibold text-slate-400">
-            MP4 • H.264
-          </span>
-        </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleShare}
+              className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-base">share</span>
+              Compartilhar
+            </button>
 
-        {/* Primary Download Action Button */}
-        <div className="pt-1">
-          <button
-            type="button"
-            id="btnDownloadClipModal"
-            disabled={downloadStatus === 'processing'}
-            onClick={handleDownload}
-            className={`w-full py-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2.5 shadow-xl ${
-              downloadStatus === 'processing'
-                ? 'bg-slate-800 text-orange-400 border border-orange-500/30 cursor-wait'
-                : downloadStatus === 'completed'
-                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
-                : 'bg-orange-500 hover:bg-orange-600 active:scale-[0.99] text-white shadow-orange-500/25'
-            }`}
-          >
-            {downloadStatus === 'processing' && (
-              <>
-                <span className="material-symbols-outlined text-xl animate-spin">
-                  sync
-                </span>
-                <span>Processando download...</span>
-              </>
-            )}
-
-            {downloadStatus === 'completed' && (
-              <>
-                <span className="material-symbols-outlined text-xl">
-                  check_circle
-                </span>
-                <span>Download Concluído!</span>
-              </>
-            )}
-
-            {downloadStatus === 'idle' && (
-              <>
-                <span className="material-symbols-outlined text-xl">
-                  cloud_download
-                </span>
-                <span>Baixar Vídeo (MP4)</span>
-              </>
-            )}
-          </button>
+            <button
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-70 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-orange-500/20 transition-all cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-base">
+                {isDownloading ? 'sync' : 'download'}
+              </span>
+              {isDownloading ? 'Baixando...' : 'Baixar Lance'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

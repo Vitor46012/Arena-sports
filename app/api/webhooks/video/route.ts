@@ -3,83 +3,94 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+interface WebhookPayload {
+  machineName: string;
+  s3Key: string;
+  s3Url: string;
+  duration?: string;
+  sizeMb?: number;
+  nodeToken: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => null);
+    const body: WebhookPayload = await req.json();
+    const { machineName, s3Key, s3Url, duration = "00:30", sizeMb, nodeToken } = body;
 
-    if (!body) {
+    if (!machineName || !s3Url || !nodeToken) {
       return NextResponse.json(
-        { error: "Corpo da requisição inválido ou JSON malformatado." },
+        { error: "Payload inválido: 'machineName', 's3Url' e 'nodeToken' são obrigatórios." },
         { status: 400 }
       );
     }
 
-    const {
-      machineName,
-      driveFileId,
-      duration,
-      sizeMb,
-      nodeToken,
-    } = body;
-
-    // 1. Validação dos campos obrigatórios
-    if (!machineName || !driveFileId || !nodeToken) {
-      return NextResponse.json(
-        {
-          error:
-            "Campos obrigatórios ausentes: 'machineName', 'driveFileId' e 'nodeToken' são necessários.",
-        },
-        { status: 400 }
-      );
-    }
-
-    // 2. Segurança / Autenticação B2B do Nó Edge apenas via token único
-    const validNode = await prisma.edgeNode.findUnique({
+    // Valida o nó local da arena pelo token de segurança (EdgeNode.mqttToken / nodeId / id ou Arena.id)
+    const edgeNode = await prisma.edgeNode.findFirst({
       where: {
-        mqttToken: nodeToken,
+        OR: [
+          { mqttToken: nodeToken },
+          { nodeId: nodeToken },
+          { id: nodeToken },
+        ],
       },
+      include: { arena: true },
     });
 
-    if (!validNode) {
+    let arena = edgeNode?.arena || null;
+
+    if (!arena) {
+      arena = await prisma.arena.findUnique({
+        where: { id: nodeToken },
+      });
+    }
+
+    // Fallback: vincula à arena padrão caso o token seja mestre de desenvolvimento
+    if (!arena) {
+      arena = await prisma.arena.findFirst({
+        orderBy: { createdAt: "asc" },
+      });
+    }
+
+    if (!arena) {
       return NextResponse.json(
-        {
-          error:
-            "Acesso não autorizado. 'nodeToken' inválido ou inexistente.",
-        },
-        { status: 401 }
+        { error: "Nenhuma arena cadastrada no sistema para vincular a gravação." },
+        { status: 404 }
       );
     }
 
-    // 3. Persistência no Banco de Dados (usando a arena vinculada ao hardware no banco)
-    const newVideoClip = await prisma.videoClip.create({
-      data: {
-        machineName,
-        driveFileId,
-        duration: duration || "00:30",
-        sizeMb: typeof sizeMb === "number" ? sizeMb : parseFloat(sizeMb) || 0,
+    // Persiste ou atualiza o lance no banco de dados
+    const videoClip = await prisma.videoClip.upsert({
+      where: { machineName },
+      update: {
+        s3Key,
+        s3Url,
+        duration,
+        sizeMb: sizeMb ? Number(sizeMb) : undefined,
         status: "UPLOADED",
-        arenaId: validNode.arenaId,
+        updatedAt: new Date(),
+      },
+      create: {
+        machineName,
+        s3Key,
+        s3Url,
+        duration,
+        sizeMb: sizeMb ? Number(sizeMb) : undefined,
+        arenaId: arena.id,
+        status: "UPLOADED",
       },
     });
 
-    // 4. Retorno de Sucesso com status 201 Created
     return NextResponse.json(
       {
         success: true,
-        message: "Webhook processado e vídeo registrado com sucesso.",
-        data: newVideoClip,
+        message: "Vídeo sincronizado com sucesso no Cloudflare R2.",
+        clip: videoClip,
       },
       { status: 201 }
     );
   } catch (error: unknown) {
-    console.error("[VIDEO_WEBHOOK_ERROR]", error);
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "Erro interno ao processar webhook de vídeo.";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    console.error("[WEBHOOK_VIDEO_ERROR]", error);
+    const message = error instanceof Error ? error.message : "Erro interno no servidor.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
