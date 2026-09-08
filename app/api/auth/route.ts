@@ -37,9 +37,11 @@ export async function POST(req: NextRequest) {
     if (!user) {
       const isExplicitAdmin =
         directRole === "admin" ||
-        normalizedEmail.includes("admin") ||
-        normalizedEmail.includes("noc") ||
-        normalizedEmail.includes("sportsreview");
+        (directRole !== "tenant" && (
+          normalizedEmail.includes("admin") ||
+          normalizedEmail.includes("noc") ||
+          (normalizedEmail.includes("sportsreview") && !normalizedEmail.includes("arena"))
+        ));
 
       const role = isExplicitAdmin ? "ADMIN" : "TENANT";
 
@@ -66,6 +68,20 @@ export async function POST(req: NextRequest) {
           arena: true,
         },
       });
+    } else if (directRole) {
+      const targetRole = directRole.toUpperCase() as "ADMIN" | "TENANT";
+      if (user.role !== targetRole) {
+        let arenaId = user.arenaId;
+        if (targetRole === "TENANT" && !arenaId) {
+          const firstArena = await prisma.arena.findFirst({ where: { isActive: true } });
+          if (firstArena) arenaId = firstArena.id;
+        }
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { role: targetRole, arenaId },
+          include: { arena: true },
+        });
+      }
     }
 
     // 3. Validação de senha se informada

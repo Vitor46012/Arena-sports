@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Video, RefreshCw, VideoOff, Radio, Film, Cpu, Sparkles, Monitor, Smartphone, Tablet, Tv } from 'lucide-react';
+import { useDeviceLayout } from '@/contexts/DeviceLayoutContext';
 
 export interface RTSPCameraFeed {
   id: string;
@@ -20,6 +22,8 @@ export default function CamerasView() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [reloadingCamId, setReloadingCamId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const { deviceSpecs, targetResolution, resolutionPreference } = useDeviceLayout();
 
   const showToast = (text: string) => {
     setToastMessage(text);
@@ -41,7 +45,7 @@ export default function CamerasView() {
           setCameras(data);
         }
       } catch (err) {
-        console.error('Falha ao carregar câmeras RTSP do banco:', err);
+        console.warn('Falha ao carregar câmeras RTSP do banco:', err);
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -79,9 +83,7 @@ export default function CamerasView() {
       {/* Toast */}
       {toastMessage && (
         <div className="fixed top-18 right-6 z-50 px-4 py-3 rounded-lg border shadow-xl flex items-center gap-3 text-xs font-semibold animate-in slide-in-from-top-2 duration-200 bg-slate-900 border-slate-700 text-slate-100">
-          <span className="material-symbols-outlined text-[18px] text-emerald-400">
-            videocam
-          </span>
+          <Video className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -107,12 +109,53 @@ export default function CamerasView() {
         </div>
       </div>
 
+      {/* Automatic Device & Resolution Diagnostic Banner */}
+      <div
+        suppressHydrationWarning
+        className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg"
+      >
+        <div className="flex items-start sm:items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0">
+            {deviceSpecs.formFactor === 'mobile' ? (
+              <Smartphone className="w-5 h-5" />
+            ) : deviceSpecs.formFactor === 'tablet' ? (
+              <Tablet className="w-5 h-5" />
+            ) : deviceSpecs.formFactor === 'tv' ? (
+              <Tv className="w-5 h-5" />
+            ) : (
+              <Monitor className="w-5 h-5" />
+            )}
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-mono font-bold text-slate-200">
+                Dispositivo Identificado: <span className="text-orange-400">{deviceSpecs.modelName}</span> ({deviceSpecs.osName})
+              </span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                Resolução Automática
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Tela: <strong className="text-slate-300 font-mono">{deviceSpecs.screen.physicalWidth}x{deviceSpecs.screen.physicalHeight}px</strong> (DPR {deviceSpecs.screen.dpr}x) • Formato: <span className="text-slate-300 font-mono">{deviceSpecs.aspectRatio.label}</span> • Diagnóstico: {deviceSpecs.detectionReason}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 self-start md:self-auto bg-slate-950/80 px-3 py-2 rounded-lg border border-slate-800 text-xs font-mono shrink-0">
+          <Sparkles className="w-4 h-4 text-orange-400 shrink-0" />
+          <div>
+            <div className="text-[10px] text-slate-500 uppercase">Perfil de Transmissão</div>
+            <div className="font-bold text-orange-400">
+              {targetResolution.shortTag} ({targetResolution.width}x{targetResolution.height})
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Loading State */}
       {isLoading && (
         <div className="py-20 flex flex-col items-center justify-center gap-3 bg-slate-900 border border-slate-800 rounded-xl">
-          <span className="material-symbols-outlined text-3xl text-orange-500 animate-spin">
-            sync
-          </span>
+          <RefreshCw className="w-8 h-8 text-orange-500 animate-spin" />
           <p className="text-xs font-mono text-slate-400">Carregando canais RTSP do banco de dados...</p>
         </div>
       )}
@@ -121,7 +164,7 @@ export default function CamerasView() {
       {!isLoading && cameras.length === 0 && (
         <div className="py-16 text-center bg-slate-900 border border-slate-800 rounded-xl p-8">
           <div className="w-16 h-16 rounded-full bg-slate-800 border border-slate-700 mx-auto flex items-center justify-center text-slate-500 mb-3">
-            <span className="material-symbols-outlined text-3xl">videocam_off</span>
+            <VideoOff className="w-8 h-8 text-slate-500" />
           </div>
           <h3 className="text-base font-bold text-slate-200 font-['Sora']">
             Nenhuma câmera RTSP vinculada
@@ -158,10 +201,13 @@ export default function CamerasView() {
                       <span className="text-slate-300">{cam.fps || 60} FPS</span>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-slate-950/90 backdrop-blur-sm border border-slate-800 px-2.5 py-1 rounded text-slate-300 text-[10px] font-mono">
-                      <span>{cam.resolution || '1920x1080'}</span>
+                    <div className="flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-sm border border-slate-800 px-2 py-1 rounded text-slate-300 text-[10px] font-mono">
+                      <span title="Resolução nativa do sensor RTSP">Sensor: {cam.resolution || '1920x1080'}</span>
                       <span className="text-slate-600">•</span>
-                      <span>{cam.bitrateKbps || 4200} kbps</span>
+                      <span title="Resolução ajustada ao dispositivo ativo" className="text-orange-400 font-bold flex items-center gap-1">
+                        <Sparkles className="w-2.5 h-2.5" />
+                        {targetResolution.shortTag}
+                      </span>
                     </div>
                   </div>
 
@@ -169,9 +215,11 @@ export default function CamerasView() {
                   <div className="my-auto flex flex-col items-center justify-center text-center px-6 py-4 space-y-3 z-10">
                     <div className="relative">
                       <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-orange-500 shadow-inner">
-                        <span className={`material-symbols-outlined text-2xl ${isReloading ? 'animate-spin text-orange-500' : 'text-orange-400'}`}>
-                          {isReloading ? 'sync' : 'sensors'}
-                        </span>
+                        {isReloading ? (
+                          <RefreshCw className="w-6 h-6 animate-spin text-orange-500" />
+                        ) : (
+                          <Radio className="w-6 h-6 text-orange-400" />
+                        )}
                       </div>
                       {isOnline && !isReloading && (
                         <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
@@ -222,9 +270,7 @@ export default function CamerasView() {
                       onClick={() => handleManualTrigger(cam)}
                       className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-[16px] text-orange-400">
-                        video_camera_front
-                      </span>
+                      <Film className="w-4 h-4 text-orange-400" />
                       <span>Gravar Corte</span>
                     </button>
 
@@ -235,13 +281,11 @@ export default function CamerasView() {
                       onClick={() => handleReloadStream(cam.id, cam.name)}
                       className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-700 text-slate-200 hover:text-orange-400 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                     >
-                      <span
-                        className={`material-symbols-outlined text-[16px] ${
+                      <RefreshCw
+                        className={`w-4 h-4 ${
                           isReloading ? 'animate-spin text-orange-500' : ''
                         }`}
-                      >
-                        refresh
-                      </span>
+                      />
                       <span>Recarregar Sinal</span>
                     </button>
                   </div>

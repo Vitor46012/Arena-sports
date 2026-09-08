@@ -1,6 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import {
+  CheckCircle2,
+  RefreshCw,
+  VideoOff,
+  Play,
+  Download,
+  Share2,
+  PlayCircle,
+  X,
+} from 'lucide-react';
 
 export interface B2BVideoClipItem {
   id: string;
@@ -50,7 +60,7 @@ export default function TenantReplaysView() {
           setVideos(data);
         }
       } catch (err) {
-        console.error('Falha ao carregar lances B2B:', err);
+        console.warn('Falha ao carregar lances B2B:', err);
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -130,9 +140,7 @@ export default function TenantReplaysView() {
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-18 right-6 z-50 px-4 py-3 rounded-lg border shadow-xl flex items-center gap-3 text-xs font-semibold animate-in slide-in-from-top-2 duration-200 bg-slate-900 border-slate-700 text-slate-100">
-          <span className="material-symbols-outlined text-[18px] text-emerald-400">
-            cloud_done
-          </span>
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -153,11 +161,9 @@ export default function TenantReplaysView() {
             type="button"
             onClick={handleManualSyncAll}
             disabled={isLoading}
-            className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+            className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
           >
-            <span className={`material-symbols-outlined text-[16px] text-orange-500 ${isLoading ? 'animate-spin' : ''}`}>
-              sync
-            </span>
+            <RefreshCw className={`w-4 h-4 text-orange-500 ${isLoading ? 'animate-spin' : ''}`} />
             <span>{isLoading ? 'Sincronizando...' : 'Sincronizar'}</span>
           </button>
         </div>
@@ -166,9 +172,7 @@ export default function TenantReplaysView() {
       {/* Loading state */}
       {isLoading && (
         <div className="py-16 flex flex-col items-center justify-center gap-3 bg-slate-900 border border-slate-800 rounded-xl">
-          <span className="material-symbols-outlined text-3xl text-orange-500 animate-spin">
-            sync
-          </span>
+          <RefreshCw className="w-8 h-8 text-orange-500 animate-spin" />
           <p className="text-xs font-mono text-slate-400">Carregando replays reais do banco de dados...</p>
         </div>
       )}
@@ -176,9 +180,7 @@ export default function TenantReplaysView() {
       {/* Empty State */}
       {!isLoading && videos.length === 0 && (
         <div className="py-16 text-center bg-slate-900 border border-slate-800 rounded-xl">
-          <span className="material-symbols-outlined text-4xl text-slate-600 mb-2">
-            videocam_off
-          </span>
+          <VideoOff className="w-10 h-10 text-slate-600 mx-auto mb-2" />
           <h3 className="text-sm font-bold text-slate-300">Nenhum lance gravado ainda</h3>
           <p className="text-xs text-slate-500 mt-1">
             Os vídeos gravados pela botoeira física ou webhook aparecerão aqui automaticamente.
@@ -239,9 +241,7 @@ export default function TenantReplaysView() {
                   {/* Play Hover Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity z-20">
                     <div className="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-lg transform group-hover/thumb:scale-110 transition-transform">
-                      <span className="material-symbols-outlined text-2xl icon-fill ml-0.5">
-                        play_arrow
-                      </span>
+                      <Play className="w-5 h-5 ml-0.5 fill-current" />
                     </div>
                   </div>
                 </div>
@@ -275,9 +275,9 @@ export default function TenantReplaysView() {
                       type="button"
                       id={`btnDownloadReplay-${rep.id}`}
                       onClick={() => handleDownload(rep)}
-                      className="w-full py-2 bg-slate-800 hover:bg-orange-500 hover:text-white border border-slate-700 rounded-lg text-[11px] font-bold text-slate-200 transition-colors flex items-center justify-center gap-1"
+                      className="w-full py-2 bg-slate-800 hover:bg-orange-500 hover:text-white border border-slate-700 rounded-lg text-[11px] font-bold text-slate-200 transition-colors flex items-center justify-center gap-1 cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-[15px]">download</span>
+                      <Download className="w-3.5 h-3.5" />
                       <span>Baixar</span>
                     </button>
 
@@ -285,9 +285,9 @@ export default function TenantReplaysView() {
                       type="button"
                       id={`btnShareReplay-${rep.id}`}
                       onClick={() => handleShareLink(rep)}
-                      className="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-[11px] font-bold text-slate-300 transition-colors flex items-center justify-center gap-1"
+                      className="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-[11px] font-bold text-slate-300 transition-colors flex items-center justify-center gap-1 cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-[15px]">share</span>
+                      <Share2 className="w-3.5 h-3.5" />
                       <span>Link</span>
                     </button>
                   </div>
@@ -310,15 +310,15 @@ export default function TenantReplaysView() {
           >
             <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950/60">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-orange-500">play_circle</span>
+                <PlayCircle className="w-4 h-4 text-orange-500" />
                 <h3 className="font-mono text-sm font-bold text-slate-100">{selectedVideoName}</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedVideoUrl(null)}
-                className="text-slate-400 hover:text-slate-100 p-1 rounded-lg hover:bg-slate-800 transition-colors"
+                className="text-slate-400 hover:text-slate-100 p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                <span className="material-symbols-outlined">close</span>
+                <X className="w-5 h-5" />
               </button>
             </div>
             <div className="aspect-video w-full bg-black">

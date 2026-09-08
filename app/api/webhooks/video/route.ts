@@ -10,12 +10,23 @@ interface WebhookPayload {
   duration?: string;
   sizeMb?: number;
   nodeToken: string;
+  courtId?: string;
+  courtIdentifier?: string;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body: WebhookPayload = await req.json();
-    const { machineName, s3Key, s3Url, duration = "00:30", sizeMb, nodeToken } = body;
+    const {
+      machineName,
+      s3Key,
+      s3Url,
+      duration = "00:30",
+      sizeMb,
+      nodeToken,
+      courtId,
+      courtIdentifier,
+    } = body;
 
     if (!machineName || !s3Url || !nodeToken) {
       return NextResponse.json(
@@ -58,6 +69,45 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Identificar a quadra vinculada ao lance
+    const targetCourtKey = courtId || courtIdentifier;
+    let targetCourt = null;
+
+    if (targetCourtKey) {
+      targetCourt = await prisma.court.findFirst({
+        where: {
+          arenaId: arena.id,
+          OR: [
+            { id: targetCourtKey },
+            { identifier: targetCourtKey },
+          ],
+        },
+      });
+    }
+
+    // Fallback: Primeira quadra ativa da arena
+    if (!targetCourt) {
+      targetCourt = await prisma.court.findFirst({
+        where: {
+          arenaId: arena.id,
+          active: true,
+        },
+        orderBy: { createdAt: "asc" },
+      });
+    }
+
+    // Se a arena ainda não tiver quadra cadastrada, cria uma padrão automaticamente
+    if (!targetCourt) {
+      targetCourt = await prisma.court.create({
+        data: {
+          name: "Quadra 1 - Principal",
+          identifier: "quadra-1",
+          arenaId: arena.id,
+          active: true,
+        },
+      });
+    }
+
     // Persiste ou atualiza o lance no banco de dados
     const videoClip = await prisma.videoClip.upsert({
       where: { machineName },
@@ -67,6 +117,8 @@ export async function POST(req: NextRequest) {
         duration,
         sizeMb: sizeMb ? Number(sizeMb) : undefined,
         status: "UPLOADED",
+        arenaId: arena.id,
+        courtId: targetCourt.id,
         updatedAt: new Date(),
       },
       create: {
@@ -76,7 +128,12 @@ export async function POST(req: NextRequest) {
         duration,
         sizeMb: sizeMb ? Number(sizeMb) : undefined,
         arenaId: arena.id,
+        courtId: targetCourt.id,
         status: "UPLOADED",
+      },
+      include: {
+        court: true,
+        arena: true,
       },
     });
 

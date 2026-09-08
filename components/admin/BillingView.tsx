@@ -1,14 +1,29 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Calendar,
+  CheckCircle,
+  Download,
+  DollarSign,
+  TrendingUp,
+  AlertTriangle,
+  Cloud,
+  Receipt,
+  RefreshCw,
+  QrCode,
+  Sliders,
+} from 'lucide-react';
 import InvoiceModal, { InvoiceData } from './InvoiceModal';
+import PlanManagerModal, { PlanItem } from './PlanManagerModal';
+import { useDeviceLayout } from '@/contexts/DeviceLayoutContext';
 
 interface ArenaDbRecord {
   id: string;
   name: string;
   cnpj: string | null;
   address: string | null;
-  planType: 'BASIC' | 'PRO' | 'MASTER';
+  planType: 'BASIC' | 'PRO' | 'MASTER' | string;
   isActive: boolean;
   edgeNodes?: Array<{
     id: string;
@@ -28,21 +43,48 @@ interface ArenaDbRecord {
   };
 }
 
-const PLAN_PRICES: Record<string, number> = {
-  BASIC: 299.0,
-  PRO: 499.0,
-  MASTER: 899.0,
-};
+// Fallbacks de segurança caso o banco esteja inacessível
+const FALLBACK_PLANS: PlanItem[] = [
+  { id: '1', name: 'Starter', slug: 'starter', price: 299.0, maxCourts: 1, active: true },
+  { id: '2', name: 'Pro', slug: 'pro', price: 499.0, maxCourts: 2, active: true },
+  { id: '3', name: 'Master', slug: 'master', price: 899.0, maxCourts: 4, active: true },
+];
 
-const PLAN_LABELS: Record<string, string> = {
-  BASIC: 'Starter (1 Quadra)',
-  PRO: 'Pro (2 Quadras)',
-  MASTER: 'Master (4 Quadras)',
-};
+function matchPlanForArena(planType: string, availablePlans: PlanItem[]): PlanItem {
+  if (!availablePlans || availablePlans.length === 0) {
+    return FALLBACK_PLANS[1];
+  }
+  const normalized = (planType || '').trim().toLowerCase();
+  
+  // Casamento exato por slug
+  const bySlug = availablePlans.find((p) => p.slug.toLowerCase() === normalized);
+  if (bySlug) return bySlug;
+  
+  // Casamento por nome
+  const byName = availablePlans.find((p) => p.name.toLowerCase() === normalized);
+  if (byName) return byName;
+  
+  // Tratamento de tipos legados do Enum
+  if (normalized === 'basic') {
+    const starter = availablePlans.find((p) => p.slug === 'starter' || p.name.toLowerCase().includes('starter'));
+    if (starter) return starter;
+  }
+  if (normalized === 'enterprise' || normalized === 'master') {
+    const master = availablePlans.find((p) => p.slug === 'master' || p.name.toLowerCase().includes('master'));
+    if (master) return master;
+  }
+
+  // Padrão: Pro ou primeiro plano da lista
+  return availablePlans.find((p) => p.slug === 'pro') || availablePlans[0] || FALLBACK_PLANS[1];
+}
 
 export default function BillingView() {
+  const { effectiveLayout } = useDeviceLayout();
+  const isMobileLayout = effectiveLayout === 'mobile';
   const [selectedMonth, setSelectedMonth] = useState('2026-08');
   const [arenas, setArenas] = useState<ArenaDbRecord[]>([]);
+  const [plans, setPlans] = useState<PlanItem[]>(FALLBACK_PLANS);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [invoices, setInvoices] = useState<InvoiceData[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceData | null>(null);
@@ -53,68 +95,109 @@ export default function BillingView() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  useEffect(() => {
-    let isMounted = true;
-    const fetchBillingData = async () => {
+  // Recalcula faturas dinamicamente associando o preço do plano às arenas reais
+  const computeInvoices = useCallback((arenasList: ArenaDbRecord[], plansList: PlanItem[]) => {
+    return arenasList.map((arena, idx) => {
+      const plan = matchPlanForArena(arena.planType, plansList);
+      const basePrice = plan.price;
+      const planLabel = `${plan.name} (${plan.maxCourts} ${plan.maxCourts === 1 ? 'Quadra' : 'Quadras'})`;
+      const clipsCount = arena._count?.videoClips || 0;
+      const storageGb = Number(((clipsCount * 12.5) / 1024).toFixed(1));
+      const s3Cost = Number((storageGb * 1.25).toFixed(2));
+      const total = basePrice + s3Cost;
+
+      // Determina status da fatura
+      const firstInvoice = arena.invoices && arena.invoices.length > 0 ? arena.invoices[0] : null;
+      const status: 'PAGO' | 'PENDENTE' | 'ATRASADO' =
+        firstInvoice?.status === 'PAGO'
+          ? 'PAGO'
+          : firstInvoice?.status === 'ATRASADO'
+          ? 'ATRASADO'
+          : idx === 0
+          ? 'PAGO'
+          : 'PENDENTE';
+
+      return {
+        id: `FAT-2026-${String(idx + 101).padStart(4, '0')}`,
+        arenaName: arena.name,
+        cnpj: arena.cnpj || 'Não informado',
+        planName: planLabel,
+        monthlyAmount: basePrice,
+        clipsCount,
+        s3StorageGb: storageGb,
+        s3Cost,
+        totalAmount: total,
+        dueDate: '10/09/2026',
+        status,
+        pixCode: `00020126580014br.gov.bcb.pix0136${arena.id}-sportsreview-b2b5204000053039865407${total.toFixed(2)}5802BR5925SPORTS REVIEW BRASIL6009CURITIBA62070503***6304E1F2`,
+        referenceMonth: 'Agosto / 2026',
+      };
+    });
+  }, []);
+
+  // Busca dados de faturamento e planos simultaneamente
+  const fetchBillingData = useCallback(async () => {
+    async function load(retryCount = 0) {
       try {
-        setIsLoading(true);
-        const res = await fetch('/api/arenas', {
-          headers: { Accept: 'application/json' },
-          cache: 'no-store',
-        });
-        if (!res.ok) throw new Error('Falha ao carregar faturamento das arenas');
-        const data: ArenaDbRecord[] = await res.json();
+        const [arenasRes, plansRes] = await Promise.all([
+          fetch('/api/arenas', {
+            headers: { Accept: 'application/json' },
+            cache: 'no-store',
+          }),
+          fetch('/api/plans?includeInactive=true', {
+            headers: { Accept: 'application/json' },
+            cache: 'no-store',
+          }),
+        ]);
 
-        if (isMounted && Array.isArray(data)) {
-          setArenas(data);
+        if (arenasRes.status === 429 && retryCount < 2) {
+          setTimeout(() => {
+            load(retryCount + 1);
+          }, 1500 * (retryCount + 1));
+          return;
+        }
 
-          // Zero Mocks: Gera faturas EXCLUSIVAMENTE para as arenas reais existentes no banco de dados
-          const dynamicInvoices: InvoiceData[] = data.map((arena, idx) => {
-            const planKey = arena.planType || 'PRO';
-            const basePrice = PLAN_PRICES[planKey] || 499.0;
-            const clipsCount = arena._count?.videoClips || 0;
-            const storageGb = Number(((clipsCount * 12.5) / 1024).toFixed(1));
-            const s3Cost = Number((storageGb * 1.25).toFixed(2));
-            const total = basePrice + s3Cost;
-            
-            // Determina status da fatura
-            const firstInvoice = arena.invoices && arena.invoices.length > 0 ? arena.invoices[0] : null;
-            const status: 'PAGO' | 'PENDENTE' | 'ATRASADO' = 
-              firstInvoice?.status === 'PAGO' ? 'PAGO' : 
-              firstInvoice?.status === 'ATRASADO' ? 'ATRASADO' : 
-              idx === 0 ? 'PAGO' : 'PENDENTE';
+        let loadedArenas: ArenaDbRecord[] = [];
+        if (arenasRes.ok) {
+          const arenasData = await arenasRes.json();
+          if (Array.isArray(arenasData)) {
+            loadedArenas = arenasData;
+            setArenas(arenasData);
+          }
+        }
 
-            return {
-              id: `FAT-2026-${String(idx + 101).padStart(4, '0')}`,
-              arenaName: arena.name,
-              cnpj: arena.cnpj || 'Não informado',
-              planName: PLAN_LABELS[planKey] || 'Pro (2 Quadras)',
-              monthlyAmount: basePrice,
-              clipsCount,
-              s3StorageGb: storageGb,
-              s3Cost,
-              totalAmount: total,
-              dueDate: '10/09/2026',
-              status,
-              pixCode: `00020126580014br.gov.bcb.pix0136${arena.id}-sportsreview-b2b5204000053039865407${total.toFixed(2)}5802BR5925SPORTS REVIEW BRASIL6009CURITIBA62070503***6304E1F2`,
-              referenceMonth: 'Agosto / 2026',
-            };
-          });
+        let loadedPlans: PlanItem[] = FALLBACK_PLANS;
+        if (plansRes.ok) {
+          const plansData = await plansRes.json();
+          if (Array.isArray(plansData) && plansData.length > 0) {
+            loadedPlans = plansData;
+            setPlans(plansData);
+          }
+        }
 
+        // Calcula faturas com valores dinâmicos dos planos
+        if (loadedArenas.length > 0) {
+          const dynamicInvoices = computeInvoices(loadedArenas, loadedPlans);
           setInvoices(dynamicInvoices);
         }
       } catch (err) {
-        console.error('Erro ao buscar dados de faturamento:', err);
+        console.warn('Aviso ao buscar dados de faturamento e planos:', err);
       } finally {
-        if (isMounted) setIsLoading(false);
+        setIsLoading(false);
       }
-    };
+    }
 
+    await load(0);
+  }, [computeInvoices]);
+
+  useEffect(() => {
     fetchBillingData();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  }, [fetchBillingData]);
+
+  // Atualização em tempo real quando planos são editados, criados ou excluídos
+  const handlePlansUpdated = () => {
+    fetchBillingData();
+  };
 
   const handleSettleInvoice = (invoiceId: string) => {
     setInvoices((prev) =>
@@ -124,7 +207,7 @@ export default function BillingView() {
     showToast(`Fatura #${invoiceId} baixada manualmente com sucesso via PIX!`);
   };
 
-  // Cálculos dinâmicos baseados nas instâncias reais
+  // Cálculos dinâmicos baseados nas instâncias reais e planos configurados
   const totalRevenue = invoices.reduce((acc, curr) => acc + curr.totalAmount, 0);
   const pendingInvoices = invoices.filter((i) => i.status !== 'PAGO');
   const pendingAmount = pendingInvoices.reduce((acc, curr) => acc + curr.totalAmount, 0);
@@ -136,29 +219,36 @@ export default function BillingView() {
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-18 right-6 z-50 px-4 py-3 rounded-lg border shadow-xl flex items-center gap-3 text-xs font-semibold animate-in slide-in-from-top-2 duration-200 bg-slate-900 border-slate-700 text-slate-100">
-          <span className="material-symbols-outlined text-[18px] text-emerald-400">
-            check_circle
-          </span>
+          <CheckCircle className="w-5 h-5 text-emerald-400" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Header & Month Selector */}
+      {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-slate-100 font-['Sora'] tracking-tight">
-            Faturamento & Finanças B2B
+            Faturamento &amp; Finanças B2B
           </h1>
           <p className="text-xs md:text-sm text-slate-400 mt-1">
-            Gestão de faturas mensais das Arenas calculadas dinamicamente com base nas instâncias do PostgreSQL.
+            Gestão de faturas mensais e consumo de armazenamento de vídeo das Arenas.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center flex-wrap gap-2.5 sm:gap-3">
+          {/* Botão Configurar Planos */}
+          <button
+            type="button"
+            id="btnConfigPlans"
+            onClick={() => setIsPlanModalOpen(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition-colors cursor-pointer shadow-sm"
+          >
+            <Sliders className="w-4 h-4 text-orange-400" />
+            <span>Configurar Planos</span>
+          </button>
+
           <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2">
-            <span className="material-symbols-outlined text-slate-400 text-[18px]">
-              calendar_month
-            </span>
+            <Calendar className="text-slate-400 w-4 h-4" />
             <select
               id="selectBillingMonth"
               value={selectedMonth}
@@ -180,9 +270,9 @@ export default function BillingView() {
           <button
             type="button"
             onClick={() => showToast('Relatório financeiro exportado com sucesso!')}
-            className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 transition-colors flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[16px]">file_download</span>
+            <Download className="w-4 h-4" />
             <span>Exportar</span>
           </button>
         </div>
@@ -197,7 +287,7 @@ export default function BillingView() {
               Receita Mensal Projetada
             </span>
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <span className="material-symbols-outlined text-[20px]">payments</span>
+              <DollarSign className="w-5 h-5" />
             </div>
           </div>
           <div className="space-y-1">
@@ -205,7 +295,7 @@ export default function BillingView() {
               {isLoading ? '...' : totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </h3>
             <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
-              <span className="material-symbols-outlined text-[16px]">trending_up</span>
+              <TrendingUp className="w-4 h-4" />
               <span>{arenas.length} {arenas.length === 1 ? 'Arena Ativa' : 'Arenas Ativas'} no Banco</span>
             </div>
           </div>
@@ -217,29 +307,29 @@ export default function BillingView() {
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               Inadimplência / Pendente
             </span>
-            <div className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400">
-              <span className="material-symbols-outlined text-[20px]">warning</span>
+            <div className="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
+              <AlertTriangle className="w-5 h-5" />
             </div>
           </div>
           <div className="space-y-1">
-            <h3 className="text-3xl font-bold font-['Sora'] text-red-400 font-mono">
+            <h3 className="text-3xl font-bold font-['Sora'] text-rose-500 font-mono">
               {isLoading ? '...' : pendingAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </h3>
             <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <span className="w-2 h-2 rounded-full bg-red-500"></span>
+              <span className="w-2 h-2 rounded-full bg-rose-500"></span>
               <span>{pendingInvoices.length} faturas aguardando conciliação</span>
             </div>
           </div>
         </div>
 
-        {/* KPI 3: S3 Storage Cost */}
+        {/* KPI 3: Cloud Storage Cost (R2) */}
         <div className="p-5 bg-slate-900 rounded-xl border border-slate-800 space-y-3 shadow-lg">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Custo Infra Cloud (AWS S3)
+              CUSTO INFRA CLOUD (R2)
             </span>
             <div className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-500">
-              <span className="material-symbols-outlined text-[20px]">cloud</span>
+              <Cloud className="w-5 h-5" />
             </div>
           </div>
           <div className="space-y-1">
@@ -260,11 +350,9 @@ export default function BillingView() {
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
         <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-orange-500 text-[20px]">
-              receipt
-            </span>
+            <Receipt className="w-5 h-5 text-orange-500" />
             <h2 className="text-sm font-bold font-['Sora'] text-slate-200 uppercase tracking-wider">
-              Faturas do Ciclo Atual (Banco de Dados PostgreSQL)
+              FATURAS DO CICLO ATUAL
             </h2>
           </div>
           <span className="text-xs font-mono text-slate-400">
@@ -272,13 +360,94 @@ export default function BillingView() {
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile View vs Desktop Table based on Device Layout */}
+        {isMobileLayout ? (
+          <div className="divide-y divide-slate-800/80">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2">
+              <RefreshCw className="w-6 h-6 text-orange-500 animate-spin" />
+              <p className="font-mono text-xs">Carregando faturas das arenas...</p>
+            </div>
+          ) : invoices.length === 0 ? (
+            <div className="text-center py-10 text-slate-400 text-xs px-4">
+              Nenhuma arena cadastrada para cálculo de faturamento.
+            </div>
+          ) : (
+            invoices.map((inv) => (
+              <div key={inv.id} className="p-4 space-y-3 bg-slate-900/60 hover:bg-slate-900 transition-colors">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-100">{inv.arenaName}</h3>
+                    <p className="text-[11px] text-slate-500 font-mono mt-0.5">{inv.cnpj}</p>
+                  </div>
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold font-mono ${
+                      inv.status === 'PAGO'
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                        : inv.status === 'PENDENTE'
+                        ? 'bg-orange-500/10 text-orange-400 border border-orange-500/30'
+                        : 'bg-red-500/10 text-red-400 border border-red-500/30'
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        inv.status === 'PAGO'
+                          ? 'bg-emerald-400'
+                          : inv.status === 'PENDENTE'
+                          ? 'bg-orange-400'
+                          : 'bg-red-400'
+                      }`}
+                    />
+                    {inv.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[11px] font-mono bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
+                  <div>
+                    <span className="text-slate-500 block text-[10px] uppercase">Plano</span>
+                    <span className="text-slate-200 font-semibold">{inv.planName}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px] uppercase">Vencimento</span>
+                    <span className="text-slate-300">{inv.dueDate}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px] uppercase">Armazenamento (R2)</span>
+                    <span className="text-slate-300">{inv.s3StorageGb} GB ({inv.clipsCount} clips)</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px] uppercase">Valor Total</span>
+                    <span className="text-orange-400 font-bold text-xs">
+                      {inv.totalAmount.toLocaleString('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      })}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  id={`btnInvoiceMobile-${inv.id}`}
+                  onClick={() => setSelectedInvoice(inv)}
+                  className="w-full py-2.5 px-3 min-h-[44px] bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-all flex items-center justify-center cursor-pointer shadow-sm"
+                >
+                  <QrCode className="w-4 h-4 mr-2" />
+                  <span>Ver Fatura &amp; PIX Copia e Cola</span>
+                </button>
+              </div>
+            ))
+          )}
+          </div>
+        ) : (
+          /* Desktop Table */
+          <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-slate-800 bg-slate-950/80 text-slate-400 font-bold uppercase tracking-wider">
                 <th className="py-3 px-4">Arena / Razão Social</th>
                 <th className="py-3 px-4">Plano Contratado</th>
-                <th className="py-3 px-4 text-center">Consumo S3</th>
+                <th className="py-3 px-4 text-center">ARMAZENAMENTO (R2)</th>
                 <th className="py-3 px-4 text-right">Valor Total</th>
                 <th className="py-3 px-4 text-center">Vencimento</th>
                 <th className="py-3 px-4 text-center">Status</th>
@@ -290,9 +459,7 @@ export default function BillingView() {
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <span className="material-symbols-outlined text-2xl text-orange-500 animate-spin">
-                        sync
-                      </span>
+                      <RefreshCw className="w-6 h-6 text-orange-500 animate-spin" />
                       <p className="font-mono text-xs">Carregando faturas das arenas...</p>
                     </div>
                   </td>
@@ -356,11 +523,9 @@ export default function BillingView() {
                         type="button"
                         id={`btnInvoice-${inv.id}`}
                         onClick={() => setSelectedInvoice(inv)}
-                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-orange-500 hover:text-white border border-slate-700 text-slate-300 font-bold text-xs transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                        className="flex items-center justify-center px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 ml-auto cursor-pointer transition-colors"
                       >
-                        <span className="material-symbols-outlined text-[15px]">
-                          qr_code_2
-                        </span>
+                        <QrCode className="w-4 h-4 mr-2" />
                         <span>Ver PIX</span>
                       </button>
                     </td>
@@ -369,7 +534,8 @@ export default function BillingView() {
               )}
             </tbody>
           </table>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Invoice PIX Modal */}
@@ -378,6 +544,15 @@ export default function BillingView() {
         invoice={selectedInvoice}
         onClose={() => setSelectedInvoice(null)}
         onConfirmSettlement={handleSettleInvoice}
+      />
+
+      {/* Plan Manager Modal */}
+      <PlanManagerModal
+        isOpen={isPlanModalOpen}
+        onClose={() => setIsPlanModalOpen(false)}
+        plans={plans}
+        onPlansUpdated={handlePlansUpdated}
+        onToast={showToast}
       />
     </div>
   );

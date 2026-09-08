@@ -71,9 +71,17 @@ model Arena {
   cnpj         String?     @unique
   address      String?
   planType     PlanType    @default(PRO)
+  features     Json?       @default("{}")
   isActive     Boolean     @default(true)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
+
+  // Branding & OBS Overlay
+  logoUrl      String?
+  sponsor1Url  String?
+  sponsor2Url  String?
+  sponsor3Url  String?
+  overlayText  String?     @default("AO VIVO • SPORTS REVIEW")
 
   // Relacionamentos 1:N
   users        User[]
@@ -81,8 +89,24 @@ model Arena {
   matches      Match[]
   videoClips   VideoClip[]
   invoices     Invoice[]
+  courts       Court[]
 
   @@map("arenas")
+}
+
+model Court {
+  id          String      @id @default(cuid())
+  name        String      // Ex: "Quadra 1 - Principal", "Quadra 2 - Futevôlei"
+  identifier  String      // Slug ou código único, ex: "quadra-1"
+  arenaId     String
+  arena       Arena       @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  videoClips  VideoClip[]
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+
+  @@unique([arenaId, identifier])
+  @@index([arenaId])
+  @@map("courts")
 }
 
 model EdgeNode {
@@ -152,12 +176,17 @@ model VideoClip {
   matchId      String?
   match        Match?      @relation(fields: [matchId], references: [id], onDelete: SetNull)
 
+  // Relação com a Quadra (opcional)
+  courtId      String?
+  court        Court?      @relation(fields: [courtId], references: [id], onDelete: SetNull)
+
   // Relação direta com a Arena
   arenaId      String
   arena        Arena       @relation(fields: [arenaId], references: [id], onDelete: Cascade)
 
   @@index([arenaId])
   @@index([matchId])
+  @@index([courtId])
   @@map("video_clips")
 }
 
@@ -180,3 +209,18 @@ model Invoice {
   @@index([arenaId])
   @@map("invoices")
 }
+
+model Plan {
+  id          String   @id @default(cuid())
+  name        String   // Ex: "Starter", "Pro", "Master"
+  slug        String   @unique // Ex: "starter", "pro", "master"
+  price       Float    // Valor mensal em reais (ex: 299.00)
+  maxCourts   Int      @default(1) // Limite de quadras inclusas
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("plans")
+}
+

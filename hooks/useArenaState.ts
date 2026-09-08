@@ -108,7 +108,7 @@ export function useArenaState(nodeId: string = 'node-pr-112'): ArenaStateHook {
           }));
         }
       } catch (err) {
-        console.error('[USE_ARENA_STATE] Erro ao buscar dados reais da partida:', err);
+        console.warn('[USE_ARENA_STATE] Erro ao buscar dados reais da partida:', err);
       }
     };
 
@@ -136,7 +136,7 @@ export function useArenaState(nodeId: string = 'node-pr-112'): ArenaStateHook {
         }),
       });
     } catch (err) {
-      console.error('[USE_ARENA_STATE] Erro ao sincronizar estado da partida com API:', err);
+      console.warn('[USE_ARENA_STATE] Erro ao sincronizar estado da partida com API:', err);
     }
   }, [matchState.id]);
 

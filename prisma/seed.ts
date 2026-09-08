@@ -103,6 +103,48 @@ async function main() {
     },
   });
 
+  // 5. Seed inicial de Planos Dinâmicos (Starter, Pro, Master)
+  const defaultPlans = [
+    {
+      name: "Starter",
+      slug: "starter",
+      price: 299.0,
+      maxCourts: 1,
+      description: "1 Quadra com câmera N100 e gravação automatizada",
+      active: true,
+    },
+    {
+      name: "Pro",
+      slug: "pro",
+      price: 499.0,
+      maxCourts: 2,
+      description: "Até 2 Quadras com replay instantâneo e clipping inteligente",
+      active: true,
+    },
+    {
+      name: "Master",
+      slug: "master",
+      price: 899.0,
+      maxCourts: 4,
+      description: "Até 4 Quadras com transmissão e armazenamento expandido",
+      active: true,
+    },
+  ];
+
+  for (const plan of defaultPlans) {
+    await prisma.plan.upsert({
+      where: { slug: plan.slug },
+      update: {
+        name: plan.name,
+        price: plan.price,
+        maxCourts: plan.maxCourts,
+        description: plan.description,
+        active: plan.active,
+      },
+      create: plan,
+    });
+  }
+
   console.log("Banco populado com sucesso!");
 }
 

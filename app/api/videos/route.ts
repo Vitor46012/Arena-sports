@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const date = searchParams.get("date");
     const arenaId = searchParams.get("arenaId");
+    const courtId = searchParams.get("courtId");
 
     const where: Record<string, unknown> = {
       s3Url: { not: null }, // Retorna apenas vídeos processados no R2
@@ -16,6 +17,10 @@ export async function GET(req: NextRequest) {
 
     if (arenaId && arenaId !== "all") {
       where.arenaId = arenaId;
+    }
+
+    if (courtId && courtId !== "all") {
+      where.courtId = courtId;
     }
 
     if (date) {
@@ -32,6 +37,15 @@ export async function GET(req: NextRequest) {
 
     const clips = await prisma.videoClip.findMany({
       where,
+      include: {
+        court: {
+          select: {
+            id: true,
+            name: true,
+            identifier: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: "desc",
       },
@@ -48,6 +62,9 @@ export async function GET(req: NextRequest) {
       duration: clip.duration || "00:30",
       sizeMb: clip.sizeMb || 0,
       arenaId: clip.arenaId,
+      courtId: clip.courtId,
+      courtName: clip.court?.name || "Quadra Geral",
+      courtIdentifier: clip.court?.identifier || null,
       status: clip.status,
       createdAt: clip.createdAt,
     }));

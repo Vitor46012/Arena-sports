@@ -1,27 +1,48 @@
 'use client';
+import PermissionGuard from '@/components/auth/PermissionGuard';
 
 import React, { useState, useEffect } from 'react';
 import SceneConfigModal from './SceneConfigModal';
 import { useArenaState } from '@/hooks/useArenaState';
+import { Lock,
+  Play,
+  Pause,
+  RotateCcw,
+  Plus,
+  Minus,
+  Radio,
+  Video,
+  Trophy,
+  Film,
+  Cast,
+  Settings,
+  CheckCircle,
+  AlertCircle,
+  Info,
+  Clock,
+  Tv,
+  PauseCircle,
+  Loader2,
+} from 'lucide-react';
 
 const SCENES_LIST = [
   {
     id: 'Espera / Pré-jogo',
     label: 'Espera / Pré-jogo',
     description: 'Vinheta de abertura com som ambiente suave',
-    icon: 'hourglass_empty',
+    icon: Clock,
   },
   {
     id: 'Jogo Ao Vivo + Placar',
     label: 'Jogo Ao Vivo + Placar',
     description: 'Câmera principal 1080p60 com overlay dinâmico',
-    icon: 'live_tv',
+    icon: Tv,
   },
   {
     id: 'Intervalo / Patrocinadores',
     label: 'Intervalo / Patrocinadores',
     description: 'Carrossel de marcas locais e replays',
-    icon: 'pause_presentation',
+    icon: PauseCircle,
   },
 ];
 
@@ -31,7 +52,7 @@ const COURTS_METADATA = [
   { id: '3', name: 'Quadra 3 (Beach Tennis)' },
 ];
 
-export default function TenantDashboardView() {
+export default function TenantDashboardView({ features = {}, role = "tenant" }: { features?: Record<string, boolean>; role?: string }) {
   const arenaState = useArenaState('arena-local');
   const {
     telemetry,
@@ -83,7 +104,7 @@ export default function TenantDashboardView() {
           if (typeof data.rtmpKey === 'string') setRtmpKey(data.rtmpKey);
         }
       } catch (err) {
-        console.error('Erro ao carregar configurações RTMP:', err);
+        console.warn('Aviso ao carregar configurações RTMP:', err);
       }
     };
 
@@ -116,7 +137,7 @@ export default function TenantDashboardView() {
 
       showToast('Configuração RTMP salva e sincronizada no OBS do Edge!', 'success');
     } catch (err) {
-      console.error('Erro ao salvar parâmetros RTMP:', err);
+      console.warn('Aviso ao salvar parâmetros RTMP:', err);
       const msg = err instanceof Error ? err.message : 'Falha ao salvar.';
       showToast(`Erro ao salvar RTMP: ${msg}`, 'warn');
     } finally {
@@ -142,7 +163,8 @@ export default function TenantDashboardView() {
 
       const payload = {
         machineName: 'LANCE_TESTE_' + Date.now(),
-        driveFileId: '1EHOEm2wEaNkxU_mD1tN6PM-4oJ1DpweE',
+        s3Key: 'replays/test-video.mp4',
+        s3Url: 'https://example.com/test-video.mp4',
         duration: '00:30',
         sizeMb: 12.5,
         arenaId,
@@ -164,7 +186,7 @@ export default function TenantDashboardView() {
 
       showToast('Webhook enviado com sucesso!', 'success');
     } catch (err: unknown) {
-      console.error('Erro ao simular webhook do edge node:', err);
+      console.warn('Aviso ao simular webhook do edge node:', err);
       const message = err instanceof Error ? err.message : 'Erro ao processar';
       showToast(`Erro no webhook: ${message}`, 'warn');
     } finally {
@@ -225,23 +247,15 @@ export default function TenantDashboardView() {
           id="tenantToast"
           className="fixed top-18 right-6 z-50 px-4 py-3 rounded-lg border shadow-xl flex items-center gap-3 text-xs font-semibold animate-in slide-in-from-top-2 duration-200 bg-slate-900 border-slate-700 text-slate-100"
         >
-          <span
-            className={`material-symbols-outlined text-[18px] ${
-              toastMessage.type === 'success'
-                ? 'text-emerald-400'
-                : toastMessage.type === 'warn'
-                ? 'text-red-400'
-                : 'text-orange-400'
-            }`}
-          >
-            {toastMessage.type === 'success'
-              ? 'check_circle'
-              : toastMessage.type === 'warn'
-              ? 'error'
-              : 'info'}
-          </span>
+          {toastMessage.type === 'success' ? (
+            <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+          ) : toastMessage.type === 'warn' ? (
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+          ) : (
+            <Info className="w-4 h-4 text-orange-400 shrink-0" />
+          )}
           <span>{toastMessage.text}</span>
-        </div>
+          </div>
       )}
 
       {/* Header */}
@@ -253,7 +267,7 @@ export default function TenantDashboardView() {
           <p className="text-xs md:text-sm text-slate-400 mt-1">
             Controle de partidas, troca de cenas OBS e disparo de replays em tempo real via MQTT & Edge N100.
           </p>
-        </div>
+          </div>
 
         <div className="flex items-center gap-3">
           <div className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-2 text-xs font-mono">
@@ -267,8 +281,8 @@ export default function TenantDashboardView() {
                 ? `N100: ${telemetry.cpu}% CPU | ${telemetry.temp}°C | ${telemetry.fps} FPS`
                 : 'Hardware: Aguardando Conexão'}
             </span>
+            </div>
           </div>
-        </div>
       </div>
 
       {/* Court Selection Tabs */}
@@ -313,9 +327,7 @@ export default function TenantDashboardView() {
           {/* Header & Overlay Toggle */}
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-orange-500 text-[18px]">
-                scoreboard
-              </span>
+              <Trophy className="w-4 h-4 text-orange-500 shrink-0" />
               Controle de Partida
             </h3>
 
@@ -339,7 +351,7 @@ export default function TenantDashboardView() {
               />
               <div className="relative w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-orange-500" />
             </label>
-          </div>
+            </div>
 
           {/* Teams and Score Grid */}
           <div className="grid grid-cols-2 gap-4">
@@ -355,18 +367,18 @@ export default function TenantDashboardView() {
                 className="w-full bg-slate-950 border border-slate-800 focus:border-orange-500 rounded-lg px-2 py-1.5 text-xs text-slate-100 text-center font-bold outline-none transition-colors"
                 placeholder="Time Casa"
               />
-              <div className="flex items-center justify-center gap-2 pt-2">
+              <div className="flex items-center justify-center gap-2 sm:gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => handleScoreChange('home', -1)}
                   aria-label="Diminuir gol casa"
-                  className="w-9 h-9 flex items-center justify-center bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 border border-slate-700 rounded-lg transition-all"
+                  className="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-90 text-slate-200 border border-slate-700 flex items-center justify-center transition-all cursor-pointer min-w-[44px] min-h-[44px]"
                 >
-                  <span className="material-symbols-outlined text-[18px]">remove</span>
+                  <Minus className="w-5 h-5" />
                 </button>
                 <span
                   id="scoreHomeDisplay"
-                  className="w-12 text-center text-4xl font-bold font-['Sora'] text-slate-100"
+                  className="w-14 text-center text-4xl sm:text-5xl font-bold font-['Sora'] text-slate-100 select-none"
                 >
                   {matchState.homeScore}
                 </span>
@@ -374,9 +386,9 @@ export default function TenantDashboardView() {
                   type="button"
                   onClick={() => handleScoreChange('home', 1)}
                   aria-label="Aumentar gol casa"
-                  className="w-9 h-9 flex items-center justify-center bg-slate-800 hover:bg-orange-500 hover:text-white active:scale-95 text-slate-200 border border-slate-700 rounded-lg transition-all"
+                  className="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-90 text-slate-200 border border-slate-700 flex items-center justify-center transition-all cursor-pointer min-w-[44px] min-h-[44px]"
                 >
-                  <span className="material-symbols-outlined text-[18px]">add</span>
+                  <Plus className="w-5 h-5" />
                 </button>
               </div>
             </div>
@@ -390,21 +402,21 @@ export default function TenantDashboardView() {
                 type="text"
                 value={matchState.awayTeam}
                 onChange={(e) => setTeams(matchState.homeTeam, e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-orange-500 rounded-lg px-2 py-1.5 text-xs text-slate-100 text-center font-bold outline-none transition-colors"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-orange-500 rounded-lg px-2 py-2 text-xs text-slate-100 text-center font-bold outline-none transition-colors"
                 placeholder="Visitante"
               />
-              <div className="flex items-center justify-center gap-2 pt-2">
+              <div className="flex items-center justify-center gap-2 sm:gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => handleScoreChange('away', -1)}
                   aria-label="Diminuir gol visitante"
-                  className="w-9 h-9 flex items-center justify-center bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 border border-slate-700 rounded-lg transition-all"
+                  className="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-90 text-slate-200 border border-slate-700 flex items-center justify-center transition-all cursor-pointer min-w-[44px] min-h-[44px]"
                 >
-                  <span className="material-symbols-outlined text-[18px]">remove</span>
+                  <Minus className="w-5 h-5" />
                 </button>
                 <span
                   id="scoreAwayDisplay"
-                  className="w-12 text-center text-4xl font-bold font-['Sora'] text-slate-100"
+                  className="w-14 text-center text-4xl sm:text-5xl font-bold font-['Sora'] text-slate-100 select-none"
                 >
                   {matchState.awayScore}
                 </span>
@@ -412,41 +424,39 @@ export default function TenantDashboardView() {
                   type="button"
                   onClick={() => handleScoreChange('away', 1)}
                   aria-label="Aumentar gol visitante"
-                  className="w-9 h-9 flex items-center justify-center bg-slate-800 hover:bg-orange-500 hover:text-white active:scale-95 text-slate-200 border border-slate-700 rounded-lg transition-all"
+                  className="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-90 text-slate-200 border border-slate-700 flex items-center justify-center transition-all cursor-pointer min-w-[44px] min-h-[44px]"
                 >
-                  <span className="material-symbols-outlined text-[18px]">add</span>
+                  <Plus className="w-5 h-5" />
                 </button>
               </div>
             </div>
           </div>
 
           {/* Chronometer Center */}
-          <div className="pt-4 border-t border-slate-800 flex flex-col items-center">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+          <div className="pt-4 border-t border-slate-800 flex flex-col items-center gap-3">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
               Tempo de Jogo
             </p>
-            <div
+            <span
               id="chronometerDisplay"
-              className="text-4xl font-bold font-mono text-white tracking-wider py-1 font-['Sora']"
+              className="font-mono text-4xl sm:text-5xl font-black text-slate-100 tracking-wider select-none font-['Sora']"
             >
               {formatTimer(matchState.timerSeconds)}
-            </div>
+            </span>
 
-            <div className="flex gap-3 mt-3">
+            <div className="flex items-center justify-center gap-4">
               <button
                 type="button"
                 id="btnTimerPlayPause"
                 onClick={handleToggleTimer}
                 aria-label={matchState.isTimerRunning ? 'Pausar Cronômetro' : 'Iniciar Cronômetro'}
-                className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all active:scale-95 ${
-                  matchState.isTimerRunning
-                    ? 'bg-orange-500/20 border-orange-500 text-orange-400'
-                    : 'bg-slate-800 border-slate-700 text-slate-200 hover:text-orange-500 hover:bg-slate-700'
-                }`}
+                className="w-12 h-12 rounded-full bg-orange-500 hover:bg-orange-600 flex items-center justify-center text-white shadow-lg transition-transform active:scale-90 cursor-pointer min-w-[48px] min-h-[48px]"
               >
-                <span className="material-symbols-outlined text-2xl">
-                  {matchState.isTimerRunning ? 'pause' : 'play_arrow'}
-                </span>
+                {matchState.isTimerRunning ? (
+                  <Pause className="w-5 h-5 fill-current" />
+                ) : (
+                  <Play className="w-5 h-5 fill-current ml-0.5" />
+                )}
               </button>
 
               <button
@@ -454,9 +464,9 @@ export default function TenantDashboardView() {
                 id="btnTimerReset"
                 onClick={handleResetTimer}
                 aria-label="Zerar Cronômetro"
-                className="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 text-slate-400 hover:text-red-400 hover:bg-slate-700 flex items-center justify-center transition-all active:scale-95"
+                className="w-12 h-12 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300 transition-colors cursor-pointer min-w-[48px] min-h-[48px]"
               >
-                <span className="material-symbols-outlined text-2xl">restart_alt</span>
+                <RotateCcw className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -466,17 +476,16 @@ export default function TenantDashboardView() {
         <div className="p-5 bg-slate-900 rounded-xl border border-slate-800 flex flex-col justify-between space-y-4 shadow-xl">
           <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
             <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-orange-500 text-[18px]">
-                movie_edit
-              </span>
+              <Film className="w-4 h-4 text-orange-500 shrink-0" />
               Mesa de Corte (Cenas OBS)
             </h3>
             <span className="text-[11px] font-mono text-emerald-400">WebSocket 4455</span>
-          </div>
+            </div>
 
           <div className="space-y-3 flex-1 flex flex-col justify-center">
             {SCENES_LIST.map((scene) => {
               const isActive = matchState.activeScene === scene.id;
+              const SceneIcon = scene.icon;
               return (
                 <div
                   key={scene.id}
@@ -488,13 +497,13 @@ export default function TenantDashboardView() {
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <span
-                      className={`material-symbols-outlined text-2xl ${
-                        isActive ? 'text-orange-500' : 'text-slate-400'
+                    <div
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                        isActive ? 'bg-orange-500/20 text-orange-500' : 'bg-slate-800 text-slate-400'
                       }`}
                     >
-                      {scene.icon}
-                    </span>
+                      <SceneIcon className="w-5 h-5" />
+                      </div>
                     <div>
                       <h4 className="text-xs font-bold tracking-tight">
                         {scene.label}
@@ -502,8 +511,8 @@ export default function TenantDashboardView() {
                       <p className="text-[11px] text-slate-400 mt-0.5">
                         {scene.description}
                       </p>
+                      </div>
                     </div>
-                  </div>
 
                   {/* Gear icon for Scene Settings Modal */}
                   <button
@@ -513,110 +522,155 @@ export default function TenantDashboardView() {
                       setActiveModalScene(scene.id);
                     }}
                     aria-label={`Configurar cena ${scene.label}`}
-                    className="p-2 rounded-lg bg-slate-800/80 text-slate-400 hover:text-orange-500 hover:bg-slate-700 transition-colors"
+                    className="p-2 rounded-lg bg-slate-800/80 text-slate-400 hover:text-orange-500 hover:bg-slate-700 transition-colors cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-[18px]">settings</span>
+                    <Settings className="w-4 h-4" />
                   </button>
-                </div>
+                  </div>
               );
             })}
-          </div>
+            </div>
 
           <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg text-xs text-slate-400 flex items-center justify-between">
             <span className="font-mono text-[11px]">Cena Ativa no Stream:</span>
             <span className="text-orange-400 font-semibold font-mono">{matchState.activeScene}</span>
+            </div>
           </div>
-        </div>
 
         {/* Column 3: RTMP Destination Settings */}
         <div className="p-5 bg-slate-900 rounded-xl border border-slate-800 flex flex-col justify-between space-y-4 shadow-xl">
           <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
             <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-orange-500 text-[18px]">
-                cast
-              </span>
+              <Cast className="w-4 h-4 text-orange-500 shrink-0" />
               Destino de Transmissão (RTMP)
             </h3>
             <span className="text-[11px] text-slate-400">YouTube / Twitch</span>
-          </div>
-
-          <div className="space-y-3.5 flex-1">
-            <div>
-              <label className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wide">
-                URL do Servidor Ingest
-              </label>
-              <input
-                type="text"
-                value={rtmpUrl}
-                onChange={(e) => setRtmpUrl(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-orange-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 outline-none transition-colors"
-                placeholder="Ex: rtmp://a.rtmp.youtube.com/live2"
-              />
             </div>
 
-            <div>
-              <label className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wide">
-                Chave de Transmissão (Stream Key)
-              </label>
-              <input
-                type="password"
-                value={rtmpKey}
-                onChange={(e) => setRtmpKey(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-orange-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 outline-none transition-colors"
-                placeholder="••••••••••••••••"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={handleSaveRtmpConfig}
-              disabled={isSavingRtmp}
-              className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-60 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
-            >
-              {isSavingRtmp && (
-                <span className="w-3.5 h-3.5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-              )}
-              <span>{isSavingRtmp ? 'Sincronizando...' : 'Salvar Parâmetros RTMP'}</span>
-            </button>
-
-            <div className="p-3 bg-slate-950/60 rounded-lg border border-slate-800 space-y-1 text-xs">
-              <div className="flex justify-between text-slate-400">
-                <span>Resolução OBS:</span>
-                <span className="text-slate-200 font-mono">1920x1080 @ 60fps</span>
+          <PermissionGuard 
+            permissionKey="transmission.edit_rtmp" 
+            role={role} 
+            features={features}
+            fallback={
+              <div className="space-y-3.5 flex-1 relative opacity-50 cursor-not-allowed">
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-900/40 rounded-lg backdrop-blur-[1px]">
+                  <div className="bg-slate-950 px-3 py-1.5 rounded-md border border-slate-800 flex items-center gap-2 shadow-xl">
+                    <Lock className="w-4 h-4 text-orange-500" />
+                    <span className="text-[10px] font-bold text-slate-300">Apenas NOC</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wide">
+                    URL do Servidor Ingest
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={rtmpUrl}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 outline-none transition-colors"
+                    placeholder="Ex: rtmp://a.rtmp.youtube.com/live2"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wide">
+                    Chave de Transmissão (Stream Key)
+                  </label>
+                  <input
+                    type="password"
+                    disabled
+                    value={rtmpKey}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 outline-none transition-colors"
+                    placeholder="••••••••••••••••"
+                  />
+                </div>
+                <button
+                  type="button"
+                  disabled
+                  className="w-full py-2.5 bg-slate-800 text-slate-400 border border-slate-700 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
+                >
+                  <span>Salvar Parâmetros RTMP</span>
+                </button>
               </div>
-              <div className="flex justify-between text-slate-400">
-                <span>Bitrate de Saída:</span>
-                <span className="text-slate-200 font-mono">6000 kbps (CBR)</span>
+            }
+          >
+            <div className="space-y-3.5 flex-1">
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wide">
+                  URL do Servidor Ingest
+                </label>
+                <input
+                  type="text"
+                  value={rtmpUrl}
+                  onChange={(e) => setRtmpUrl(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-orange-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 outline-none transition-colors"
+                  placeholder="Ex: rtmp://a.rtmp.youtube.com/live2"
+                />
               </div>
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wide">
+                  Chave de Transmissão (Stream Key)
+                </label>
+                <input
+                  type="password"
+                  value={rtmpKey}
+                  onChange={(e) => setRtmpKey(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-orange-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 outline-none transition-colors"
+                  placeholder="••••••••••••••••"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveRtmpConfig}
+                disabled={isSavingRtmp}
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-60 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {isSavingRtmp ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 text-orange-500 animate-spin" />
+                    <span>Sincronizando...</span>
+                  </>
+                ) : (
+                  <span>Salvar Parâmetros RTMP</span>
+                )}
+              </button>
+            </div>
+          </PermissionGuard>
+
+          <div className="p-3 bg-slate-950/60 rounded-lg border border-slate-800 space-y-1 text-xs">
+            <div className="flex justify-between text-slate-400">
+              <span>Resolução OBS:</span>
+              <span className="text-slate-200 font-mono">1920x1080 @ 60fps</span>
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>Bitrate de Saída:</span>
+              <span className="text-slate-200 font-mono">6000 kbps (CBR)</span>
             </div>
           </div>
-        </div>
+          </div>
       </div>
 
       {/* Master Actions Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
         {/* Master Go Live Button */}
         <div className="md:col-span-2">
           <button
             type="button"
             id="masterGoLiveBtn"
             onClick={handleToggleGoLive}
-            className={`w-full py-4 rounded-xl font-bold text-base md:text-lg font-['Sora'] uppercase tracking-wider transition-all flex items-center justify-center gap-3 shadow-xl ${
+            className={`w-full py-4 px-6 rounded-xl font-bold text-sm sm:text-base md:text-lg font-['Sora'] uppercase tracking-wider transition-all flex items-center justify-center gap-2.5 shadow-xl cursor-pointer ${
               matchState.isLive
                 ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse shadow-red-500/30'
                 : 'bg-orange-500 hover:bg-orange-600 active:scale-[0.99] text-white shadow-orange-500/25'
             }`}
           >
-            <span className="material-symbols-outlined text-2xl">
-              {matchState.isLive ? 'sensors' : 'podcasts'}
-            </span>
-            <span>
+            <Radio className={`w-5 h-5 ${matchState.isLive ? 'animate-pulse' : ''}`} />
+            <span className="whitespace-nowrap">
               {matchState.isLive
                 ? 'NO AR • ENCERRAR TRANSMISSÃO'
                 : 'INICIAR TRANSMISSÃO AO VIVO'}
             </span>
           </button>
-        </div>
+          </div>
 
         {/* Manual Clip Button */}
         <div>
@@ -627,16 +681,18 @@ export default function TenantDashboardView() {
             disabled={isSimulatingUpload}
             className="w-full h-full min-h-[56px] py-3.5 px-4 bg-orange-500 hover:bg-orange-600 disabled:opacity-75 active:scale-[0.99] text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 cursor-pointer disabled:cursor-not-allowed"
           >
-            <span className={`material-symbols-outlined text-[20px] ${isSimulatingUpload ? 'animate-spin' : ''}`}>
-              {isSimulatingUpload ? 'sync' : 'video_camera_front'}
-            </span>
-            <span>
+            {isSimulatingUpload ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Video className="w-5 h-5" />
+            )}
+            <span className="whitespace-nowrap">
               {isSimulatingUpload
                 ? 'ENVIANDO WEBHOOK...'
                 : 'GRAVAR LANCE MANUAL (30S)'}
             </span>
           </button>
-        </div>
+          </div>
       </div>
 
       {/* Scene Configuration Modal */}

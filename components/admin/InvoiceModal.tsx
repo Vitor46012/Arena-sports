@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Receipt, X, QrCode, Check, Copy, Info, CheckCircle2 } from 'lucide-react';
 
 export interface InvoiceData {
   id: string;
@@ -54,7 +55,7 @@ export default function InvoiceModal({
         <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-500">
-              <span className="material-symbols-outlined text-[20px]">receipt_long</span>
+              <Receipt className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-['Sora'] font-bold text-sm text-slate-100">
@@ -67,9 +68,9 @@ export default function InvoiceModal({
             type="button"
             onClick={onClose}
             aria-label="Fechar Modal"
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer"
           >
-            <span className="material-symbols-outlined text-xl">close</span>
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -88,7 +89,7 @@ export default function InvoiceModal({
             </div>
             <div className="flex justify-between items-center text-xs">
               <span className="text-slate-400">
-                Custo Armazenamento S3 ({invoice.s3StorageGb} GB):
+                Custo Armazenamento R2 ({invoice.s3StorageGb} GB):
               </span>
               <span className="text-slate-200 font-semibold font-mono">
                 {invoice.s3Cost.toLocaleString('pt-BR', {
@@ -120,7 +121,7 @@ export default function InvoiceModal({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-orange-500 text-[16px]">qr_code_2</span>
+                <QrCode className="w-4 h-4 text-orange-500" />
                 Código PIX Copia e Cola (Banco Central do Brasil)
               </label>
               <span className="text-[10px] text-slate-500 font-mono">Vencimento: {invoice.dueDate}</span>
@@ -137,24 +138,20 @@ export default function InvoiceModal({
               type="button"
               id="btnCopyPix"
               onClick={handleCopyPix}
-              className={`w-full py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-center gap-2 border transition-all ${
+              className={`w-full py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-center gap-2 border transition-all cursor-pointer ${
                 copied
                   ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400'
                   : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
               }`}
             >
-              <span className="material-symbols-outlined text-[16px]">
-                {copied ? 'check' : 'content_copy'}
-              </span>
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               <span>{copied ? 'Código PIX Copiado com Sucesso!' : 'Copiar Chave PIX'}</span>
             </button>
           </div>
 
           {/* Manual Settlement Notice */}
           <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg flex items-start gap-2.5 text-xs text-slate-400">
-            <span className="material-symbols-outlined text-orange-500 text-[18px] shrink-0 mt-0.5">
-              info
-            </span>
+            <Info className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
             <p>
               Ao realizar a <strong className="text-slate-200">Baixa Manual</strong>, o status da
               fatura será alterado para <span className="text-emerald-400 font-semibold">PAGO</span> e a
@@ -168,7 +165,7 @@ export default function InvoiceModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 text-xs font-semibold transition-colors"
+            className="px-4 py-2.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 text-xs font-semibold transition-colors cursor-pointer"
           >
             Cancelar
           </button>
@@ -176,9 +173,9 @@ export default function InvoiceModal({
             type="button"
             id="btnConfirmSettlement"
             onClick={handleSettle}
-            className="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition-all"
+            className="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition-all cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[18px]">verified</span>
+            <CheckCircle2 className="w-4 h-4" />
             <span>Confirmar Baixa Manual PIX</span>
           </button>
         </div>

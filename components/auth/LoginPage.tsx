@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import SportsReviewLogo from '@/components/common/SportsReviewLogo';
+import { Mail, Lock, LogIn, AlertCircle, Shield, Trophy } from 'lucide-react';
 
 interface LoginPageProps {
   onLoginSuccess: (role: 'admin' | 'tenant') => void;
@@ -98,7 +99,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
             role="alert"
             className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl text-xs font-medium flex items-center gap-2 animate-in slide-in-from-top-2"
           >
-            <span className="material-symbols-outlined text-base">error</span>
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
             <span>{errorMessage}</span>
           </div>
         )}
@@ -113,10 +114,8 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
             >
               E-mail Corporativo
             </label>
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-lg pointer-events-none">
-                mail
-              </span>
+            <div className="relative flex items-center">
+              <Mail className="absolute left-3.5 w-5 h-5 text-slate-500 pointer-events-none" />
               <input
                 id="loginEmailInput"
                 type="email"
@@ -124,7 +123,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
-                className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl pl-10 pr-4 py-3 text-xs font-medium focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all placeholder:text-slate-600 disabled:opacity-60"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-11 pr-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-orange-500 disabled:opacity-60 transition-colors"
               />
             </div>
           </div>
@@ -142,10 +141,8 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 Esqueceu a chave?
               </span>
             </div>
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-lg pointer-events-none">
-                lock
-              </span>
+            <div className="relative flex items-center">
+              <Lock className="absolute left-3.5 w-5 h-5 text-slate-500 pointer-events-none" />
               <input
                 id="loginPasswordInput"
                 type="password"
@@ -153,7 +150,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
-                className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl pl-10 pr-4 py-3 text-xs font-medium focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all placeholder:text-slate-600 disabled:opacity-60"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-11 pr-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-orange-500 disabled:opacity-60 transition-colors"
               />
             </div>
           </div>
@@ -163,7 +160,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
             type="submit"
             id="btnLoginSubmit"
             disabled={isLoading}
-            className="w-full bg-orange-500 hover:bg-orange-600 active:scale-[0.99] disabled:opacity-70 text-white font-bold text-xs py-3.5 rounded-xl uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 mt-2"
+            className="w-full bg-orange-500 hover:bg-orange-600 active:scale-[0.99] disabled:opacity-70 text-white font-bold text-xs py-3.5 rounded-xl uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 mt-2 cursor-pointer"
           >
             {isLoading ? (
               <>
@@ -172,7 +169,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
               </>
             ) : (
               <>
-                <span className="material-symbols-outlined text-lg">login</span>
+                <LogIn className="w-4 h-4" />
                 <span>Autenticar</span>
               </>
             )}
@@ -189,17 +186,15 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
         </div>
 
         {/* QA Shortcut Buttons */}
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-3 mt-4">
           <button
             type="button"
             id="btnDevLoginAdmin"
             onClick={() => handleDevLogin('admin')}
             disabled={isLoading}
-            className="w-full bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white font-mono text-[11px] font-bold py-2.5 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-60"
+            className="flex items-center justify-center gap-2 p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 active:scale-95 transition-all cursor-pointer disabled:opacity-60"
           >
-            <span className="material-symbols-outlined text-base text-orange-500">
-              admin_panel_settings
-            </span>
+            <Shield className="w-4 h-4 text-orange-500 shrink-0" />
             <span>Admin (NOC)</span>
           </button>
 
@@ -208,11 +203,9 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
             id="btnDevLoginTenant"
             onClick={() => handleDevLogin('tenant')}
             disabled={isLoading}
-            className="w-full bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white font-mono text-[11px] font-bold py-2.5 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-60"
+            className="flex items-center justify-center gap-2 p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 active:scale-95 transition-all cursor-pointer disabled:opacity-60"
           >
-            <span className="material-symbols-outlined text-base text-emerald-400">
-              stadium
-            </span>
+            <Trophy className="w-4 h-4 text-emerald-500 shrink-0" />
             <span>Tenant (Arena)</span>
           </button>
         </div>

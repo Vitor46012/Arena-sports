@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Landmark, X, Info, Cpu, Video, RefreshCw, Plus, Check, ShieldCheck, Trash2 } from 'lucide-react';
 
 export interface ArenaInfraData {
   id: string;
@@ -10,10 +11,11 @@ export interface ArenaInfraData {
   contactName: string;
   contactPhone: string;
   plan: string;
-  status: 'ONLINE' | 'PROVISIONANDO' | 'OFFLINE';
-  macAddress: string;
-  ipLan: string;
-  mqttToken: string;
+  status: 'ONLINE' | 'PROVISIONANDO' | 'OFFLINE' | 'AGUARDANDO_HARDWARE' | 'PENDENTE' | string;
+  macAddress: string | null;
+  ipLan?: string | null;
+  mqttToken?: string | null;
+  features?: Record<string, boolean>;
   cameras: {
     courtNumber: number;
     cameraName: string;
@@ -28,6 +30,7 @@ interface ArenaModalProps {
   arena?: ArenaInfraData | null;
   onClose: () => void;
   onSave: (arenaData: ArenaInfraData) => void;
+  onDelete?: (arena: ArenaInfraData) => void;
 }
 
 export default function ArenaModal({
@@ -35,8 +38,9 @@ export default function ArenaModal({
   arena,
   onClose,
   onSave,
+  onDelete,
 }: ArenaModalProps) {
-  const [activeTab, setActiveTab] = useState<'geral' | 'edge' | 'cameras'>('geral');
+  const [activeTab, setActiveTab] = useState<'geral' | 'edge' | 'cameras' | 'features'>('geral');
 
   // Form State
   const [name, setName] = useState(arena?.name || '');
@@ -45,14 +49,22 @@ export default function ArenaModal({
   const [contactName, setContactName] = useState(arena?.contactName || '');
   const [contactPhone, setContactPhone] = useState(arena?.contactPhone || '(41) 99876-5432');
   const [plan, setPlan] = useState(arena?.plan || 'Pro 2 Quadras');
+  const [features, setFeatures] = useState<Record<string, boolean>>(
+    arena?.features || {
+      'auto_clipping': true,
+      'custom_overlay': false,
+      'live_streaming': false,
+      'api_access': false,
+    }
+  );
 
   // Edge Infra State
   const [macAddress, setMacAddress] = useState(
-    arena?.macAddress || 'B8:27:EB:A4:91:0F'
+    arena?.macAddress || ''
   );
-  const [ipLan, setIpLan] = useState(arena?.ipLan || '192.168.15.200');
+  const [ipLan, setIpLan] = useState(arena?.ipLan || '');
   const [mqttToken, setMqttToken] = useState(
-    arena?.mqttToken || 'tok_live_n100_edge_789456123'
+    arena?.mqttToken || ''
   );
 
   // Cameras State
@@ -106,10 +118,27 @@ export default function ArenaModal({
         status: 'ONLINE',
       },
     ]);
+    setCourtsCount((prev) => Math.max(prev, nextCourt));
+  };
+
+  const handleRemoveCamera = (index: number) => {
+    setCameras((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      return next.map((cam, i) => ({
+        ...cam,
+        courtNumber: i + 1,
+        cameraName: cam.cameraName.startsWith('Câmera Quadra')
+          ? `Câmera Quadra ${i + 1}`
+          : cam.cameraName,
+      }));
+    });
+    setCourtsCount((prev) => Math.max(1, prev - 1));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanMac = macAddress.trim() || null;
+    const cleanIp = ipLan.trim() || null;
     const data: ArenaInfraData = {
       id: arena?.id || `arena-${Date.now().toString().slice(-4)}`,
       name: name || 'Nova Arena Esportiva',
@@ -118,10 +147,11 @@ export default function ArenaModal({
       contactName,
       contactPhone,
       plan,
-      status: 'ONLINE',
-      macAddress,
-      ipLan,
-      mqttToken,
+      status: cleanMac ? 'ONLINE' : 'AGUARDANDO_HARDWARE',
+      macAddress: cleanMac,
+      ipLan: cleanIp,
+      mqttToken: mqttToken || null,
+      features,
       cameras,
     };
     onSave(data);
@@ -134,9 +164,7 @@ export default function ArenaModal({
         <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-500">
-              <span className="material-symbols-outlined text-[20px]">
-                stadium
-              </span>
+              <Landmark className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-['Sora'] font-bold text-sm text-slate-100">
@@ -151,9 +179,9 @@ export default function ArenaModal({
             type="button"
             onClick={onClose}
             aria-label="Fechar Modal"
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer"
           >
-            <span className="material-symbols-outlined text-xl">close</span>
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -163,13 +191,13 @@ export default function ArenaModal({
             type="button"
             id="tabModalGeral"
             onClick={() => setActiveTab('geral')}
-            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 ${
+            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
               activeTab === 'geral'
                 ? 'border-orange-500 text-orange-500'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <span className="material-symbols-outlined text-[16px]">info</span>
+            <Info className="w-4 h-4" />
             <span>1. Dados Gerais</span>
           </button>
 
@@ -177,13 +205,13 @@ export default function ArenaModal({
             type="button"
             id="tabModalEdge"
             onClick={() => setActiveTab('edge')}
-            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 ${
+            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
               activeTab === 'edge'
                 ? 'border-orange-500 text-orange-500'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <span className="material-symbols-outlined text-[16px]">memory</span>
+            <Cpu className="w-4 h-4" />
             <span>2. Infra Edge (N100)</span>
           </button>
 
@@ -191,14 +219,27 @@ export default function ArenaModal({
             type="button"
             id="tabModalCameras"
             onClick={() => setActiveTab('cameras')}
-            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 ${
+            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
               activeTab === 'cameras'
                 ? 'border-orange-500 text-orange-500'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <span className="material-symbols-outlined text-[16px]">videocam</span>
+            <Video className="w-4 h-4" />
             <span>3. Câmeras RTSP ({cameras.length})</span>
+          </button>
+          <button
+            type="button"
+            id="tabModalFeatures"
+            onClick={() => setActiveTab('features')}
+            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
+              activeTab === 'features'
+                ? 'border-orange-500 text-orange-500'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>4. Permissões</span>
           </button>
         </div>
 
@@ -299,9 +340,7 @@ export default function ArenaModal({
           {activeTab === 'edge' && (
             <div className="space-y-4 animate-in fade-in duration-150">
               <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg text-xs text-slate-400 flex items-center gap-2">
-                <span className="material-symbols-outlined text-orange-500 text-[18px]">
-                  developer_board
-                </span>
+                <Cpu className="w-5 h-5 text-orange-500" />
                 <span>
                   O Mini PC N100 roda Ubuntu Server 24.04 com Docker Compose (OBS + Node-RED + Mosquitto).
                 </span>
@@ -343,9 +382,9 @@ export default function ArenaModal({
                   <button
                     type="button"
                     onClick={handleGenerateMqttToken}
-                    className="text-[10px] text-orange-400 hover:underline flex items-center gap-1"
+                    className="text-[10px] text-orange-400 hover:underline flex items-center gap-1 cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-[14px]">refresh</span>
+                    <RefreshCw className="w-3 h-3" />
                     Gerar Novo Token
                   </button>
                 </div>
@@ -376,9 +415,9 @@ export default function ArenaModal({
                 <button
                   type="button"
                   onClick={handleAddCamera}
-                  className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-orange-400 text-xs font-bold flex items-center gap-1 transition-colors"
+                  className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-orange-400 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-[16px]">add</span>
+                  <Plus className="w-3.5 h-3.5" />
                   Adicionar Câmera
                 </button>
               </div>
@@ -393,9 +432,22 @@ export default function ArenaModal({
                       <span className="font-bold text-slate-200">
                         Quadra {cam.courtNumber} • {cam.cameraName}
                       </span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
-                        RTSP ATIVO
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
+                          RTSP ATIVO
+                        </span>
+                        {cameras.length > 1 && (
+                          <button
+                            type="button"
+                            id={`btnRemoveCamera-${idx}`}
+                            onClick={() => handleRemoveCamera(idx)}
+                            className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                            title={`Remover Quadra ${cam.courtNumber}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -433,22 +485,72 @@ export default function ArenaModal({
             </div>
           )}
 
+          {/* TAB 4: MÓDULOS & PERMISSÕES */}
+          {activeTab === 'features' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg text-xs text-slate-400">
+                Configure os Entitlements granulares desta Arena. Estes flags ativam ou ocultam funcionalidades no painel do Tenant (Feature Flags).
+              </div>
+              <div className="space-y-2">
+                {[
+                  { id: 'auto_clipping', label: 'Corte Automático (Highlights)', desc: 'Permite gerar replays e cortes de lances' },
+                  { id: 'custom_overlay', label: 'Overlay Personalizado (OBS)', desc: 'Permite trocar logos de patrocinadores na tela' },
+                  { id: 'live_streaming', label: 'Transmissão ao Vivo (YouTube)', desc: 'Habilita botão de ir ao vivo (Go Live)' },
+                  { id: 'api_access', label: 'Acesso via API Externa', desc: 'Permite que aplicativos terceiros leiam dados da arena' },
+                  { id: 'player_portal', label: 'Portal do Atleta (QR Code)', desc: 'Libera escaneamento do QR Code no alambrado' },
+                ].map((ff) => (
+                  <label key={ff.id} className="flex items-start gap-3 p-3 bg-slate-950 border border-slate-800 hover:border-slate-700 rounded-xl cursor-pointer transition-colors">
+                    <div className="flex h-5 items-center">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 bg-slate-900 border-slate-700 rounded text-orange-500 focus:ring-orange-500 focus:ring-offset-slate-950"
+                        checked={features[ff.id] || false}
+                        onChange={(e) => setFeatures({ ...features, [ff.id]: e.target.checked })}
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-slate-200">{ff.label}</span>
+                      <span className="text-[10px] text-slate-500">{ff.desc}</span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Footer Submit */}
-          <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold transition-colors"
-            >
-              Cancelar
-            </button>
+          <div className="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+
+              {arena && onDelete && (
+                <button
+                  type="button"
+                  id="btnDeleteArenaModal"
+                  onClick={() => {
+                    onClose();
+                    onDelete(arena);
+                  }}
+                  className="px-4 py-2.5 rounded-lg border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4 text-rose-400" />
+                  <span>Excluir Arena</span>
+                </button>
+              )}
+            </div>
 
             <button
               type="submit"
               id="btnSaveArena"
-              className="px-5 py-2.5 rounded-lg bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-orange-500/20 transition-all"
+              className="px-5 py-2.5 rounded-lg bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-orange-500/20 transition-all cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[18px]">check</span>
+              <Check className="w-4 h-4" />
               <span>Salvar Provisionamento</span>
             </button>
           </div>
