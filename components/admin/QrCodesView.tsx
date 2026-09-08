@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Printer, QrCode, Link2, Download, Camera, Trash2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Printer, QrCode, Link2, Download, Camera } from 'lucide-react';
 import SportsReviewLogo from '@/components/common/SportsReviewLogo';
 
 interface CourtData {
@@ -35,29 +35,6 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
   const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [printTargetCourtId, setPrintTargetCourtId] = useState<string | null>(null);
-  const [courtToDelete, setCourtToDelete] = useState<CourtData | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const handleConfirmDeleteCourt = async () => {
-    if (!courtToDelete) return;
-    try {
-      setIsDeleting(true);
-      const res = await fetch(`/api/courts/${courtToDelete.id}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Falha ao excluir quadra.');
-      }
-      setCourts((prev) => prev.filter((c) => c.id !== courtToDelete.id));
-      setCourtToDelete(null);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro ao excluir quadra.';
-      alert(msg);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   // Carregar lista de arenas com resiliência
   useEffect(() => {
@@ -293,7 +270,8 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
         </div>
 
         <div className="text-xs font-mono text-slate-400">
-          Total: <span className="text-orange-400 font-bold">{courts.length}</span> quadras configuradas
+          Total: <span className="text-orange-400 font-bold">{courts.length}</span>{' '}
+          {courts.length === 1 ? 'quadra configurada' : 'quadras configuradas'}
         </div>
       </div>
 
@@ -353,15 +331,6 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
                       >
                         <Printer className="w-4 h-4" />
                       </button>
-                      <button
-                        type="button"
-                        id={`btnDeleteCourt-${court.id}`}
-                        onClick={() => setCourtToDelete(court)}
-                        title="Excluir Quadra"
-                        className="p-2 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 text-xs transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
 
                     {/* MOLDURA PROFISSIONAL DO TOTEM / PLACA */}
@@ -402,7 +371,7 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
                           <span>Aponte a câmera para ver seu lance</span>
                         </div>
                         <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                          Vídeos cortados pela botoeira disponíveis instantaneamente em 1080p 60fps no seu celular.
+                          Apertou o botão na quadra? Escaneie e assista aos seus melhores lances na hora, direto no celular!
                         </p>
                       </div>
 
@@ -418,54 +387,6 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
           </div>
         )}
       </main>
-
-      {/* Modal de Confirmação de Exclusão de Quadra */}
-      {courtToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400">
-                <Trash2 className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-slate-100 font-['Sora']">
-                  Excluir Quadra?
-                </h3>
-                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Tem certeza de que deseja excluir a{' '}
-                  <strong className="text-rose-400 font-semibold">{courtToDelete.name}</strong>?
-                  Os clipes de vídeo associados permanecerão no histórico, mas a quadra será removida do sistema.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                disabled={isDeleting}
-                onClick={() => setCourtToDelete(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                id="btnConfirmDeleteCourt"
-                disabled={isDeleting}
-                onClick={handleConfirmDeleteCourt}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 active:scale-95 text-white shadow-lg shadow-rose-600/20 flex items-center gap-2 transition-all cursor-pointer"
-              >
-                {isDeleting ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Trash2 className="w-3.5 h-3.5" />
-                )}
-                <span>{isDeleting ? 'Excluindo...' : 'Confirmar Exclusão'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
