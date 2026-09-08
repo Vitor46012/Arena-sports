@@ -249,7 +249,7 @@ export default function OverlayBrandingView() {
         alert(`Erro no upload: ${err.error || 'Falha ao enviar arquivo'}`);
       }
     } catch {
-      alert('Erro de conexão ao enviar imagem para o R2.');
+      alert('Erro de conexão ao enviar imagem.');
     } finally {
       setIsUploading(null);
       setCurrentUploadField(null);
@@ -286,13 +286,23 @@ export default function OverlayBrandingView() {
     }
   };
 
+  const selectedCourt =
+    arenaData?.courts.find((c) => c.id === selectedCourtId) ||
+    arenaData?.courts?.[0];
+
   const getObsUrl = () => {
     const origin =
       typeof window !== 'undefined' && window.location.origin
         ? window.location.origin
         : 'https://arena-sports-five.vercel.app';
-    const target = selectedCourtId || (arenaData?.courts?.[0]?.id ?? selectedArenaId);
-    return `${origin}/overlay/${target}`;
+    const targetSlug =
+      selectedCourt?.identifier ||
+      selectedCourt?.id ||
+      arenaData?.courts?.[0]?.identifier ||
+      arenaData?.courts?.[0]?.id ||
+      selectedArenaId ||
+      'quadra-1';
+    return `${origin}/overlay/${targetSlug}`;
   };
 
   const copyObsUrl = () => {
@@ -300,8 +310,6 @@ export default function OverlayBrandingView() {
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2500);
   };
-
-  const selectedCourt = arenaData?.courts.find((c) => c.id === selectedCourtId);
 
   return (
     <div className="space-y-6">
@@ -380,26 +388,25 @@ export default function OverlayBrandingView() {
                   className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                 >
                   <Upload className="w-3.5 h-3.5" />
-                  {isUploading === 'logo' ? 'Enviando...' : 'Upload R2'}
+                  {isUploading === 'logo' ? 'Enviando...' : 'Enviar Imagem'}
                 </button>
               </div>
 
               {logoUrl ? (
-                <div className="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
-                  <div className="w-16 h-16 bg-slate-900 rounded-lg p-1.5 border border-slate-800 flex items-center justify-center">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={logoUrl} alt="Logo Arena" className="max-h-full max-w-full object-contain" />
+                <div className="flex items-center justify-between gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-16 h-16 bg-slate-900 rounded-lg p-1.5 border border-slate-800 flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={logoUrl} alt="Logo Arena" className="max-h-full max-w-full object-contain" />
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-mono text-slate-300 truncate">{logoUrl}</p>
-                    <button
-                      type="button"
-                      onClick={() => setLogoUrl('')}
-                      className="text-[11px] text-rose-400 hover:underline mt-1"
-                    >
-                      Remover imagem
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setLogoUrl('')}
+                    className="text-xs font-semibold text-rose-400 hover:text-rose-300 hover:underline px-2 py-1 rounded cursor-pointer"
+                  >
+                    Remover imagem
+                  </button>
                 </div>
               ) : (
                 <div

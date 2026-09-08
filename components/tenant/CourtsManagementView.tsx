@@ -355,7 +355,7 @@ export default function CourtsManagementView() {
               typeof window !== 'undefined' && window.location.origin
                 ? window.location.origin
                 : 'https://arena-sports-five.vercel.app';
-            const overlayUrl = `${origin}/overlay/${court.id}`;
+            const overlayUrl = `${origin}/overlay/${court.identifier || court.id}`;
             const qrUrl = `/admin/qr-codes`;
             const videoCount = court._count?.videoClips ?? 0;
 
