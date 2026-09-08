@@ -82,13 +82,22 @@ export default function HomePage() {
     }
   };
 
+  const handleRoleChange = (newRole: UserRole) => {
+    setRole(newRole);
+    if (newRole === 'admin') {
+      setCurrentView('nodes');
+    } else {
+      setCurrentView('dashboard');
+    }
+  };
+
   const handleViewChange = (viewId: string) => {
     setCurrentView(viewId);
   };
 
   // Se o usuário estiver no papel de atleta (ex: scan do QR Code do alambrado)
   if (role === 'player') {
-    return <PlayerPortal onBackToDashboard={() => setRole('admin')} />;
+    return <PlayerPortal onBackToDashboard={() => { setRole('admin'); setCurrentView('nodes'); }} />;
   }
 
   // Se não estiver autenticado e não for atleta, exibe a tela de login como Gatekeeper B2B
@@ -104,14 +113,40 @@ export default function HomePage() {
         features={features}
         onViewChange={handleViewChange}
         onRoleToggle={handleRoleToggle}
+        onRoleChange={handleRoleChange}
         onDeployClick={() => setCurrentView('provision')}
         onOpenPlayerPortal={() => setRole('player')}
       >
         <div className="max-w-7xl mx-auto">
-          {/* GESTÃO DE QUADRAS, BRANDING & OBS OVERLAY */}
+          {/* NOC & ADMIN VIEWS */}
+          {currentView === 'nodes' && (
+            <NodesView onDeployClick={() => setCurrentView('provision')} />
+          )}
+
+          {currentView === 'billing' && (
+            <BillingView />
+          )}
+
+          {currentView === 'provision' && (
+            <ProvisionView />
+          )}
+
+          {currentView === 'permissions' && (
+            <PermissionsManagerView />
+          )}
+
+          {/* TENANT & SHARED VIEWS */}
+          {currentView === 'dashboard' && (
+            <TenantDashboardView features={features || {}} role={role as UserRole} />
+          )}
+
           {currentView === 'courts' && <CourtsManagementView />}
 
-          {currentView === 'branding' && (<PermissionGuard permissionKey="branding.access" features={features} role={role}><OverlayBrandingView /></PermissionGuard>)}
+          {currentView === 'branding' && (
+            <PermissionGuard permissionKey="branding.access" features={features} role={role}>
+              <OverlayBrandingView />
+            </PermissionGuard>
+          )}
 
           {currentView === 'qrcodes' && (
             <PermissionGuard permissionKey="totems.generate" features={features} role={role}>
@@ -121,34 +156,13 @@ export default function HomePage() {
             </PermissionGuard>
           )}
 
-          {/* SUPER ADMIN VIEWS */}
-          {role === 'admin' && currentView === 'nodes' && (
-            <NodesView onDeployClick={() => setCurrentView('provision')} />
-          )}
-
-          {role === 'admin' && currentView === 'billing' && (
-            <BillingView />
-          )}
-
-          {role === 'admin' && currentView === 'provision' && (
-            <ProvisionView />
-          )}
-          {role === 'admin' && currentView === 'permissions' && (
-            <PermissionsManagerView />
-          )}
-
-          {/* TENANT (ARENA OWNER) VIEWS */}
-          {role === 'tenant' && currentView === 'dashboard' && (
-            <TenantDashboardView features={features || {}} role={role} />
-          )}
-
-          {role === 'tenant' && currentView === 'cameras' && (
+          {currentView === 'cameras' && (
             <PermissionGuard permissionKey="cameras.access" features={features} role={role}>
               <CamerasView />
             </PermissionGuard>
           )}
 
-          {role === 'tenant' && currentView === 'replays' && (
+          {currentView === 'replays' && (
             <TenantReplaysView />
           )}
         </div>

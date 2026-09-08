@@ -23,9 +23,11 @@ export default function PermissionGuard({
     return <>{children}</>;
   }
 
-  const isAllowed = features[permissionKey] === true;
-
-  if (isAllowed) return <>{children}</>;
+  // Deny only if explicitly set to false
+  const isExplicitlyDenied = features && features[permissionKey] === false;
+  if (!isExplicitlyDenied) {
+    return <>{children}</>;
+  }
 
   if (hideOnDeny) return null;
 

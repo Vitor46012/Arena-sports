@@ -33,6 +33,7 @@ export interface SideNavBarProps {
   features?: Record<string, boolean>;
   onViewChange?: (viewId: string) => void;
   onRoleToggle?: () => void;
+  onRoleChange?: (role: UserRole) => void;
   onDeployClick?: () => void;
   onOpenPlayerPortal?: () => void;
   isMobile?: boolean;
@@ -61,6 +62,7 @@ export default function SideNavBar({
   features,
   onViewChange,
   onRoleToggle,
+  onRoleChange,
   onDeployClick,
   onOpenPlayerPortal,
   isMobile = false,
@@ -97,7 +99,9 @@ export default function SideNavBar({
   };
 
   const handleRoleClick = (targetRole: UserRole) => {
-    if (role !== targetRole && onRoleToggle) {
+    if (onRoleChange) {
+      onRoleChange(targetRole);
+    } else if (role !== targetRole && onRoleToggle) {
       onRoleToggle();
     }
     if (isMobile && onClose) onClose();

@@ -22,6 +22,7 @@ export interface AppShellProps {
   features?: Record<string, boolean>;
   onViewChange?: (viewId: string) => void;
   onRoleToggle?: () => void;
+  onRoleChange?: (role: UserRole) => void;
   onDeployClick?: () => void;
   onOpenPlayerPortal?: () => void;
   children: React.ReactNode;
@@ -33,6 +34,7 @@ export default function AppShell({
   features,
   onViewChange,
   onRoleToggle,
+  onRoleChange,
   onDeployClick,
   onOpenPlayerPortal,
   children,
@@ -72,6 +74,7 @@ export default function AppShell({
           features={features}
           onViewChange={onViewChange}
           onRoleToggle={onRoleToggle}
+          onRoleChange={onRoleChange}
           onDeployClick={onDeployClick}
           onOpenPlayerPortal={onOpenPlayerPortal}
         />
@@ -100,6 +103,7 @@ export default function AppShell({
                 setIsMobileMenuOpen(false);
               }}
               onRoleToggle={onRoleToggle}
+              onRoleChange={onRoleChange}
               onDeployClick={onDeployClick}
               onOpenPlayerPortal={onOpenPlayerPortal}
             />
