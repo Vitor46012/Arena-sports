@@ -1,8 +1,11 @@
 node_modules/
 .next/
+.vercel/
 dist/
 build/
 coverage/
+.turbo/
+*.nft.json
 .DS_Store
 *.log
 .env
@@ -11,3 +14,4 @@ coverage/
 .env.test.local
 .env.production.local
 !.env.example
+

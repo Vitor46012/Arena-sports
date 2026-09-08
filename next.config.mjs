@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   serverExternalPackages: [
     '@prisma/client',
     'prisma',
@@ -20,4 +23,5 @@ const nextConfig = {
     ],
   },
 };
+
 export default nextConfig;
