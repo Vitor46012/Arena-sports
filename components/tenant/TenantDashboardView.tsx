@@ -104,7 +104,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
           if (typeof data.rtmpKey === 'string') setRtmpKey(data.rtmpKey);
         }
       } catch (err) {
-        console.warn('Aviso ao carregar configurações RTMP:', err);
+        console.warn('Aviso ao carregar configurações RTMP:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
       }
     };
 
@@ -135,9 +135,9 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
         throw new Error(errData.error || `Erro HTTP ${res.status}`);
       }
 
-      showToast('Configuração RTMP salva e sincronizada no OBS do Edge!', 'success');
+      showToast('Configurações da Live salvas com sucesso!', 'success');
     } catch (err) {
-      console.warn('Aviso ao salvar parâmetros RTMP:', err);
+      console.warn('Aviso ao salvar parâmetros RTMP:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
       const msg = err instanceof Error ? err.message : 'Falha ao salvar.';
       showToast(`Erro ao salvar RTMP: ${msg}`, 'warn');
     } finally {
@@ -158,7 +158,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
           }
         }
       } catch (fetchErr) {
-        console.warn('Falha ao buscar arenas, usando fallback:', fetchErr);
+        console.warn('Falha ao buscar arenas:', String(fetchErr));
       }
 
       const payload = {
@@ -186,7 +186,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
 
       showToast('Webhook enviado com sucesso!', 'success');
     } catch (err: unknown) {
-      console.warn('Aviso ao simular webhook do edge node:', err);
+      console.warn('Aviso ao simular webhook do edge node:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
       const message = err instanceof Error ? err.message : 'Erro ao processar';
       showToast(`Erro no webhook: ${message}`, 'warn');
     } finally {
@@ -219,13 +219,13 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
 
   const handleSceneSelect = (sceneId: string) => {
     setActiveScene(sceneId);
-    showToast(`Cena alterada para "${sceneId}" via WebSocket OBS!`, 'success');
+    showToast(`Tela alterada para "${sceneId}" na live!`, 'success');
   };
 
   const handleToggleGoLive = () => {
     const nextLive = toggleLive();
     if (nextLive) {
-      showToast('TRANSMISSÃO AO VIVO INICIADA! Sinal enviado para o YouTube.', 'success');
+      showToast('TRANSMISSÃO AO VIVO INICIADA! O jogo já está passando no YouTube.', 'success');
     } else {
       showToast('Transmissão ao vivo encerrada.', 'warn');
     }
@@ -262,10 +262,10 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-slate-100 font-['Sora'] tracking-tight">
-            Mesa de Corte & Transmissão B2B
+            Painel de Transmissão
           </h1>
           <p className="text-xs md:text-sm text-slate-400 mt-1">
-            Controle de partidas, troca de cenas OBS e disparo de replays em tempo real via MQTT & Edge N100.
+            Controle do placar, troca de telas na live e gravação de melhores momentos da quadra.
           </p>
           </div>
 
@@ -278,8 +278,8 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
             ></span>
             <span className="text-slate-300">
               {telemetry.brokerConnected
-                ? `N100: ${telemetry.cpu}% CPU | ${telemetry.temp}°C | ${telemetry.fps} FPS`
-                : 'Hardware: Aguardando Conexão'}
+                ? `Painel de Controle Conectado`
+                : 'Equipamento Desconectado - Verifique a energia e internet da quadra'}
             </span>
             </div>
           </div>
@@ -333,7 +333,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
 
             <label className="inline-flex items-center cursor-pointer gap-2">
               <span className="text-[11px] font-semibold text-slate-400">
-                Placar no OBS
+                Placar na Live
               </span>
               <input
                 type="checkbox"
@@ -342,8 +342,8 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
                   toggleOverlay();
                   showToast(
                     !matchState.showOverlay
-                      ? 'Overlay do placar exibido no stream.'
-                      : 'Overlay do placar ocultado.',
+                      ? 'Placar agora está visível na transmissão.'
+                      : 'Placar ocultado da transmissão.',
                     'info'
                   );
                 }}
@@ -477,9 +477,9 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
           <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
             <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
               <Film className="w-4 h-4 text-orange-500 shrink-0" />
-              Mesa de Corte (Cenas OBS)
+              Controle da Tela da Live
             </h3>
-            <span className="text-[11px] font-mono text-emerald-400">WebSocket 4455</span>
+            <span className="text-[11px] font-mono text-emerald-400">Conexão Ativa</span>
             </div>
 
           <div className="space-y-3 flex-1 flex flex-col justify-center">
@@ -532,7 +532,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
             </div>
 
           <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg text-xs text-slate-400 flex items-center justify-between">
-            <span className="font-mono text-[11px]">Cena Ativa no Stream:</span>
+            <span className="font-mono text-[11px]">Tela Atual:</span>
             <span className="text-orange-400 font-semibold font-mono">{matchState.activeScene}</span>
             </div>
           </div>
@@ -542,7 +542,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
           <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
             <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
               <Cast className="w-4 h-4 text-orange-500 shrink-0" />
-              Destino de Transmissão (RTMP)
+              Configuração da Live / YouTube
             </h3>
             <span className="text-[11px] text-slate-400">YouTube / Twitch</span>
             </div>
@@ -561,7 +561,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wide">
-                    URL do Servidor Ingest
+                    URL de Transmissão do YouTube
                   </label>
                   <input
                     type="text"
@@ -573,7 +573,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wide">
-                    Chave de Transmissão (Stream Key)
+                    Chave de Transmissão do YouTube
                   </label>
                   <input
                     type="password"
@@ -588,7 +588,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
                   disabled
                   className="w-full py-2.5 bg-slate-800 text-slate-400 border border-slate-700 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
                 >
-                  <span>Salvar Parâmetros RTMP</span>
+                  <span>Salvar Configuração do YouTube</span>
                 </button>
               </div>
             }
@@ -596,7 +596,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
             <div className="space-y-3.5 flex-1">
               <div>
                 <label className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wide">
-                  URL do Servidor Ingest
+                  URL de Transmissão do YouTube
                 </label>
                 <input
                   type="text"
@@ -608,7 +608,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
               </div>
               <div>
                 <label className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wide">
-                  Chave de Transmissão (Stream Key)
+                  Chave de Transmissão do YouTube
                 </label>
                 <input
                   type="password"
@@ -630,7 +630,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
                     <span>Sincronizando...</span>
                   </>
                 ) : (
-                  <span>Salvar Parâmetros RTMP</span>
+                  <span>Salvar Configuração do YouTube</span>
                 )}
               </button>
             </div>
@@ -638,11 +638,11 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
 
           <div className="p-3 bg-slate-950/60 rounded-lg border border-slate-800 space-y-1 text-xs">
             <div className="flex justify-between text-slate-400">
-              <span>Resolução OBS:</span>
+              <span>Qualidade de Vídeo:</span>
               <span className="text-slate-200 font-mono">1920x1080 @ 60fps</span>
             </div>
             <div className="flex justify-between text-slate-400">
-              <span>Bitrate de Saída:</span>
+              <span>Velocidade de Internet Exigida:</span>
               <span className="text-slate-200 font-mono">6000 kbps (CBR)</span>
             </div>
           </div>
@@ -701,7 +701,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
         sceneName={activeModalScene || ''}
         onClose={() => setActiveModalScene(null)}
         onSync={() => {
-          showToast(`Cena "${activeModalScene}" sincronizada com OBS via WebSocket!`, 'success');
+          showToast(`Tela "${activeModalScene}" atualizada na live com sucesso!`, 'success');
         }}
       />
     </div>

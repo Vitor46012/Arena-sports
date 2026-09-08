@@ -52,7 +52,7 @@ export default function HomePage() {
         })
         .catch(err => {
           if (mounted) {
-            console.warn('Informações da arena indisponíveis:', err?.message || err);
+            console.warn("Informacoes indisponiveis");
           }
         });
     }

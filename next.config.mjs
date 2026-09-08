@@ -1,8 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  distDir: process.env.NODE_ENV === 'development' ? '.next_dev' : '.next',
-  serverExternalPackages: ['@prisma/client', 'prisma'],
+  serverExternalPackages: [
+    '@prisma/client',
+    'prisma',
+    '@opentelemetry/api',
+    '@opentelemetry/core',
+    '@aws-sdk/client-s3',
+    'pg',
+  ],
   images: {
     remotePatterns: [
       {
@@ -14,5 +20,4 @@ const nextConfig = {
     ],
   },
 };
-
 export default nextConfig;

@@ -11,10 +11,10 @@ export interface ArenaInfraData {
   contactName: string;
   contactPhone: string;
   plan: string;
-  status: 'ONLINE' | 'PROVISIONANDO' | 'OFFLINE' | 'AGUARDANDO_HARDWARE' | 'PENDENTE' | string;
-  macAddress: string | null;
-  ipLan?: string | null;
-  mqttToken?: string | null;
+  status: 'ONLINE' | 'PROVISIONANDO' | 'OFFLINE';
+  macAddress: string;
+  ipLan: string;
+  mqttToken: string;
   features?: Record<string, boolean>;
   cameras: {
     courtNumber: number;
@@ -60,11 +60,11 @@ export default function ArenaModal({
 
   // Edge Infra State
   const [macAddress, setMacAddress] = useState(
-    arena?.macAddress || ''
+    arena?.macAddress || 'B8:27:EB:A4:91:0F'
   );
-  const [ipLan, setIpLan] = useState(arena?.ipLan || '');
+  const [ipLan, setIpLan] = useState(arena?.ipLan || '192.168.15.200');
   const [mqttToken, setMqttToken] = useState(
-    arena?.mqttToken || ''
+    arena?.mqttToken || 'tok_live_n100_edge_789456123'
   );
 
   // Cameras State
@@ -137,8 +137,6 @@ export default function ArenaModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanMac = macAddress.trim() || null;
-    const cleanIp = ipLan.trim() || null;
     const data: ArenaInfraData = {
       id: arena?.id || `arena-${Date.now().toString().slice(-4)}`,
       name: name || 'Nova Arena Esportiva',
@@ -147,10 +145,10 @@ export default function ArenaModal({
       contactName,
       contactPhone,
       plan,
-      status: cleanMac ? 'ONLINE' : 'AGUARDANDO_HARDWARE',
-      macAddress: cleanMac,
-      ipLan: cleanIp,
-      mqttToken: mqttToken || null,
+      status: 'ONLINE',
+      macAddress,
+      ipLan,
+      mqttToken,
       features,
       cameras,
     };

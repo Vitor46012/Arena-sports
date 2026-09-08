@@ -181,7 +181,7 @@ export default function BillingView() {
           setInvoices(dynamicInvoices);
         }
       } catch (err) {
-        console.warn('Aviso ao buscar dados de faturamento e planos:', err);
+        console.warn('Aviso ao buscar dados de faturamento e planos:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
       } finally {
         setIsLoading(false);
       }

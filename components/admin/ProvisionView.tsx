@@ -8,10 +8,9 @@ import {
   Zap,
   RefreshCw,
   Save,
-  Server,
+  Landmark,
   Edit,
-  Trash2,
-  X
+  Trash2
 } from 'lucide-react';
 import ArenaModal, { ArenaInfraData } from './ArenaModal';
 
@@ -19,14 +18,14 @@ const FALLBACK_PROVISION_ARENAS: ArenaInfraData[] = [
   {
     id: "arena-pr-01",
     name: "Arena Society Paranaguá",
-    cityState: "Rua das Palmeiras, 112 - Paranaguá, PR",
+    cityState: "Paranaguá - PR",
     courtsCount: 2,
     contactName: "Administrador Local",
     contactPhone: "(41) 99876-5432",
     plan: "Pro 2 Quadras",
     status: "ONLINE",
     macAddress: "00:1A:2B:3C:4D:5E",
-    ipLan: null,
+    ipLan: "192.168.15.100",
     mqttToken: "tok_live_n100_edge",
     cameras: [
       {
@@ -41,18 +40,14 @@ const FALLBACK_PROVISION_ARENAS: ArenaInfraData[] = [
 ];
 
 export default function ProvisionView() {
-  const [arenas, setArenas] = useState<ArenaInfraData[]>([]);
+  const [arenas, setArenas] = useState<ArenaInfraData[]>(FALLBACK_PROVISION_ARENAS);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingArena, setEditingArena] = useState<ArenaInfraData | null>(null);
   const [arenaToDelete, setArenaToDelete] = useState<ArenaInfraData | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
-  const [toastMessage, setToastMessage] = useState<{
-    title?: string;
-    text: string;
-    type: 'success' | 'error';
-  } | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Estados para provisionamento rápido direto na view
   const [quickArenaName, setQuickArenaName] = useState('');
@@ -60,17 +55,9 @@ export default function ProvisionView() {
   const [quickMacAddress, setQuickMacAddress] = useState('');
   const [quickSrtPort, setQuickSrtPort] = useState('6000');
 
-  const showToast = (
-    text: string,
-    type: 'success' | 'error' = 'success',
-    title?: string
-  ) => {
-    setToastMessage({
-      text,
-      type,
-      title: title || (type === 'success' ? 'Alterações Aplicadas' : 'Erro de Configuração'),
-    });
-    setTimeout(() => setToastMessage(null), 4500);
+  const showToast = (text: string, type: 'success' | 'error' = 'success') => {
+    setToastMessage({ text, type });
+    setTimeout(() => setToastMessage(null), 4000);
   };
 
   const loadArenas = useCallback(async () => {
@@ -86,41 +73,31 @@ export default function ProvisionView() {
           if (Array.isArray(arenasData) && arenasData.length > 0) {
             const mappedArenas: ArenaInfraData[] = arenasData.map((a: any) => {
               const node = a.edgeNodes && a.edgeNodes.length > 0 ? a.edgeNodes[0] : null;
-              const hasMac = Boolean(node && node.macAddress && node.macAddress.trim() !== '' && node.macAddress !== 'Não vinculado');
               return {
                 id: a.id,
                 name: a.name,
-                cityState: a.address || 'Localização não informada',
+                cityState: a.address || 'Paranaguá - PR',
                 courtsCount: a.planType === 'MASTER' ? 4 : a.planType === 'PRO' ? 2 : 1,
                 contactName: 'Administrador Local',
                 contactPhone: '(41) 99876-5432',
                 plan: a.planType === 'MASTER' ? 'Master (4 Quadras)' : a.planType === 'PRO' ? 'Pro 2 Quadras' : 'Starter (1 Quadra)',
-                status: hasMac ? (node.status || 'ONLINE') : 'AGUARDANDO_HARDWARE',
-                macAddress: hasMac ? node.macAddress : null,
-                ipLan: hasMac && node.localIp ? node.localIp : null,
-                mqttToken: node?.mqttToken || null,
+                status: (node?.status as any) || (a.isActive ? 'ONLINE' : 'OFFLINE'),
+                macAddress: node?.macAddress || 'Não vinculado',
+                ipLan: node?.localIp || '192.168.15.200',
+                mqttToken: node?.mqttToken || 'tok_live_n100_edge',
                 features: a.features || {},
                 cameras: [
                   {
                     courtNumber: 1,
                     cameraName: 'Câmera Principal (Society)',
-                    rtspUrl: `rtsp://admin:pass123@${hasMac && node?.localIp ? node.localIp : '192.168.15.51'}:554/stream1`,
+                    rtspUrl: `rtsp://admin:pass123@${node?.localIp || '192.168.15.51'}:554/stream1`,
                     esp32Ip: '192.168.15.101',
-                    status: (hasMac && node?.status === 'ONLINE' ? 'ONLINE' : 'OFFLINE') as 'ONLINE' | 'OFFLINE',
+                    status: (node?.status === 'ONLINE' ? 'ONLINE' : 'OFFLINE') as 'ONLINE' | 'OFFLINE',
                   },
                 ],
               };
             });
-
-            // Deduplicação segura para garantir que nenhuma arena apareça repetida na listagem
-            const seenIds = new Set<string>();
-            const uniqueArenas = mappedArenas.filter((arena) => {
-              if (seenIds.has(arena.id)) return false;
-              seenIds.add(arena.id);
-              return true;
-            });
-
-            setArenas(uniqueArenas);
+            setArenas(mappedArenas);
             setIsLoading(false);
             return;
           }
@@ -138,41 +115,30 @@ export default function ProvisionView() {
         if (res.ok) {
           const nodesData = await res.json();
           if (Array.isArray(nodesData) && nodesData.length > 0) {
-            const mappedArenas: ArenaInfraData[] = nodesData.map((node: any) => {
-              const hasMac = Boolean(node && node.macAddress && node.macAddress.trim() !== '' && node.macAddress !== 'Não vinculado');
-              return {
-                id: node.arena?.id || node.id,
-                name: node.arena?.name || 'Arena Sem Vínculo',
-                cityState: node.arena?.address || 'Localização não informada',
-                courtsCount: 2,
-                contactName: 'Administrador Local',
-                contactPhone: '(41) 99876-5432',
-                plan: 'Pro 2 Quadras',
-                status: hasMac ? (node.status || 'ONLINE') : 'AGUARDANDO_HARDWARE',
-                macAddress: hasMac ? node.macAddress : null,
-                ipLan: hasMac && node.localIp ? node.localIp : null,
-                mqttToken: node.mqttToken || null,
-                features: node.arena?.features,
-                cameras: [
-                  {
-                    courtNumber: 1,
-                    cameraName: 'Câmera Principal (Society)',
-                    rtspUrl: `rtsp://admin:pass123@${hasMac && node.localIp ? node.localIp : '192.168.15.51'}:554/stream1`,
-                    esp32Ip: '192.168.15.101',
-                    status: (hasMac && node.status === 'ONLINE' ? 'ONLINE' : 'OFFLINE') as 'ONLINE' | 'OFFLINE',
-                  },
-                ],
-              };
-            });
-
-            const seenIds = new Set<string>();
-            const uniqueArenas = mappedArenas.filter((arena) => {
-              if (seenIds.has(arena.id)) return false;
-              seenIds.add(arena.id);
-              return true;
-            });
-
-            setArenas(uniqueArenas);
+            const mappedArenas: ArenaInfraData[] = nodesData.map((node: any) => ({
+              id: node.arena?.id || node.id,
+              name: node.arena?.name || 'Arena Sem Vínculo',
+              cityState: 'Paranaguá - PR',
+              courtsCount: 2,
+              contactName: 'Administrador Local',
+              contactPhone: '(41) 99876-5432',
+              plan: 'Pro 2 Quadras',
+              status: node.status || 'ONLINE',
+              macAddress: node.macAddress || 'B8:27:EB:A4:91:0F',
+              ipLan: node.localIp || '192.168.15.200',
+              mqttToken: node.mqttToken || 'tok_live_n100_edge',
+              features: node.arena?.features,
+              cameras: [
+                {
+                  courtNumber: 1,
+                  cameraName: 'Câmera Principal (Society)',
+                  rtspUrl: `rtsp://admin:pass123@${node.localIp || '192.168.15.51'}:554/stream1`,
+                  esp32Ip: '192.168.15.101',
+                  status: 'ONLINE',
+                },
+              ],
+            }));
+            setArenas(mappedArenas);
             setIsLoading(false);
             return;
           }
@@ -182,7 +148,7 @@ export default function ProvisionView() {
           setTimeout(() => fetchWithRetry(retry + 1), 1200);
           return;
         }
-        console.warn('Aviso ao buscar arenas provisionadas:', err);
+        console.warn('Aviso ao buscar arenas provisionadas:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
       }
       setArenas((prev) => (prev.length > 0 ? prev : FALLBACK_PROVISION_ARENAS));
       setIsLoading(false);
@@ -276,17 +242,13 @@ export default function ProvisionView() {
       setQuickCnpj('');
       setQuickMacAddress('');
       setQuickSrtPort('6000');
-      showToast(
-        `Nó Edge para "${quickArenaName}" provisionado e salvo com sucesso.`,
-        'success',
-        'Infraestrutura Atualizada'
-      );
+      showToast('Nó provisionado com sucesso!');
 
       // Recarregar dados do banco
       await loadArenas();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao processar provisionamento.';
-      showToast(msg, 'error', 'Falha no Provisionamento');
+      showToast(msg, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -320,70 +282,33 @@ export default function ProvisionView() {
       }
 
       setIsModalOpen(false);
-      showToast(
-        `As alterações de infraestrutura de "${savedArena.name}" foram aplicadas com sucesso.`,
-        'success',
-        'Configurações Aplicadas'
-      );
+      showToast('Nó provisionado com sucesso!');
       await loadArenas();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao salvar.';
-      showToast(msg, 'error', 'Erro ao Aplicar Alterações');
+      showToast(msg, 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-300 relative">
-      {/* Toast Notification usando Tailwind */}
+    <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-300">
+      {/* Toast Notification */}
       {toastMessage && (
         <div
-          id="provisionToastNotification"
-          role="status"
-          aria-live="polite"
-          className="fixed top-6 right-6 z-50 max-w-md w-full sm:w-96 shadow-2xl transition-all animate-in slide-in-from-top-4 fade-in duration-300"
+          className={`fixed top-18 right-6 z-50 px-4 py-3 rounded-lg border shadow-xl flex items-center gap-3 text-xs font-semibold animate-in slide-in-from-top-2 duration-200 ${
+            toastMessage.type === 'success'
+              ? 'bg-slate-900 border-emerald-500/40 text-emerald-300'
+              : 'bg-slate-900 border-red-500/40 text-red-300'
+          }`}
         >
-          <div
-            className={`p-4 rounded-xl border backdrop-blur-md shadow-2xl flex items-start gap-3.5 ${
-              toastMessage.type === 'success'
-                ? 'bg-slate-900/95 border-emerald-500/30 shadow-emerald-500/10 text-slate-100'
-                : 'bg-slate-900/95 border-rose-500/30 shadow-rose-500/10 text-slate-100'
-            }`}
-          >
-            <div
-              className={`p-2 rounded-lg shrink-0 mt-0.5 ${
-                toastMessage.type === 'success'
-                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
-                  : 'bg-rose-500/15 text-rose-400 border border-rose-500/20'
-              }`}
-            >
-              {toastMessage.type === 'success' ? (
-                <CheckCircle className="w-5 h-5 text-emerald-400" />
-              ) : (
-                <AlertCircle className="w-5 h-5 text-rose-400" />
-              )}
-            </div>
-
-            <div className="flex-1 min-w-0 pr-1">
-              <h4 className="text-xs font-bold font-['Sora'] uppercase tracking-wider text-slate-200">
-                {toastMessage.title || (toastMessage.type === 'success' ? 'Sucesso' : 'Erro')}
-              </h4>
-              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                {toastMessage.text}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              id="btnCloseToastNotification"
-              onClick={() => setToastMessage(null)}
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 transition-colors shrink-0 cursor-pointer"
-              aria-label="Fechar notificação"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+          {toastMessage.type === 'success' ? (
+            <CheckCircle className="w-4 h-4 text-emerald-400" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-red-400" />
+          )}
+          <span>{toastMessage.text}</span>
         </div>
       )}
 
@@ -411,10 +336,10 @@ export default function ProvisionView() {
 
       {/* Formulário Rápido de Provisionamento */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
-        <div className="flex items-center mb-4 pb-3 border-b border-slate-800">
-          <Zap className="w-5 h-5 text-orange-500 mr-2" />
+        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-800">
+          <Zap className="w-5 h-5 text-orange-500" />
           <h2 className="text-sm font-bold font-['Sora'] text-slate-100 uppercase tracking-wider">
-            PROVISIONAMENTO RÁPIDO DE NÓ EDGE
+            Provisionamento Rápido de Nó Edge (PostgreSQL)
           </h2>
         </div>
 
@@ -489,12 +414,12 @@ export default function ProvisionView() {
               type="submit"
               id="btnSubmitProvision"
               disabled={isSubmitting}
-              className="px-5 py-2.5 rounded-lg bg-orange-500 hover:bg-orange-600 active:scale-95 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider flex items-center shadow-lg shadow-orange-500/20 transition-all cursor-pointer"
+              className="px-5 py-2.5 rounded-lg bg-orange-500 hover:bg-orange-600 active:scale-95 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-orange-500/20 transition-all cursor-pointer"
             >
               {isSubmitting ? (
-                <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (
-                <Save className="w-4 h-4 mr-2" />
+                <Save className="w-4 h-4" />
               )}
               <span>{isSubmitting ? 'Provisionando...' : 'Salvar e Provisionar Nó'}</span>
             </button>
@@ -505,14 +430,14 @@ export default function ProvisionView() {
       {/* Arenas Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
         <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
-          <div className="flex items-center">
-            <Server className="w-5 h-5 text-orange-500 mr-2" />
+          <div className="flex items-center gap-2">
+            <Landmark className="w-5 h-5 text-orange-500" />
             <h2 className="text-sm font-bold font-['Sora'] text-slate-200 uppercase tracking-wider">
-              ARENAS & NÓS ATIVOS
+              Arenas & Nós Ativos no PostgreSQL
             </h2>
           </div>
           <span className="text-xs font-mono text-slate-400">
-            {isLoading ? 'Carregando...' : `${arenas.length} ${arenas.length === 1 ? 'instância conectada' : 'instâncias conectadas'}`}
+            {isLoading ? 'Carregando...' : `${arenas.length} instâncias conectadas`}
           </span>
         </div>
 
@@ -531,39 +456,14 @@ export default function ProvisionView() {
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {isLoading ? (
-                // Skeleton Screen para o carregamento dos nós Edge
-                <>
-                  {[1, 2, 3, 4].map((index) => (
-                    <tr key={`skeleton-row-${index}`} className="animate-pulse">
-                      <td className="py-4 px-4">
-                        <div className="h-4 w-44 bg-slate-800 rounded mb-2"></div>
-                        <div className="h-3 w-32 bg-slate-800/60 rounded"></div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="h-4 w-24 bg-slate-800 rounded"></div>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <div className="h-4 w-8 bg-slate-800 rounded mx-auto"></div>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <div className="h-5 w-16 bg-slate-800 rounded mx-auto"></div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="h-3.5 w-32 bg-slate-800 rounded mb-1.5"></div>
-                        <div className="h-3 w-24 bg-slate-800/60 rounded"></div>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <div className="h-6 w-24 bg-slate-800 rounded-full mx-auto"></div>
-                      </td>
-                      <td className="py-4 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="h-7 w-20 bg-slate-800 rounded-lg"></div>
-                          <div className="h-7 w-7 bg-slate-800 rounded-lg"></div>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </>
+                <tr>
+                  <td colSpan={7} className="text-center py-12 text-slate-400">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <RefreshCw className="w-7 h-7 text-orange-500 animate-spin" />
+                      <p className="font-mono text-xs text-slate-400">Carregando dados da infraestrutura...</p>
+                    </div>
+                  </td>
+                </tr>
               ) : arenas.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-10 text-slate-400">
@@ -588,40 +488,18 @@ export default function ProvisionView() {
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-mono text-[11px]">
-                        {a.cameras.length} {a.cameras.length === 1 ? 'feed' : 'feeds'}
+                        {a.cameras.length} feeds
                       </span>
                     </td>
-                    <td className="py-3.5 px-4">
-                      {a.macAddress ? (
-                        <div className="flex flex-col font-mono text-[11px]">
-                          <span className="text-slate-300 font-semibold">{a.macAddress}</span>
-                          <span className="text-slate-500">{a.ipLan || 'Aguardando rede'}</span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-500 italic bg-slate-800/50 px-2 py-1 rounded border border-slate-800">
-                          Aguardando Hardware
-                        </span>
-                      )}
+                    <td className="py-3.5 px-4 font-mono text-[11px]">
+                      <div className="text-slate-300">{a.macAddress}</div>
+                      <div className="text-slate-500">{a.ipLan}</div>
                     </td>
                     <td className="py-3.5 px-4 text-center">
-                      {a.macAddress ? (
-                        a.status === 'ONLINE' ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                            ONLINE
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold font-mono bg-rose-500/10 text-rose-400 border border-rose-500/30">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-                            OFFLINE
-                          </span>
-                        )
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold font-mono bg-slate-800 text-slate-400 border border-slate-700">
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
-                          AGUARDANDO HARDWARE
-                        </span>
-                      )}
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        {a.status}
+                      </span>
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">

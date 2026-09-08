@@ -120,7 +120,8 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
             : 'https://arena-sports-five.vercel.app';
 
         const codes: Record<string, string> = {};
-        const QRCode = await import('qrcode');
+        const QRCodeModule = await import('qrcode');
+        const QRCode = QRCodeModule.default || QRCodeModule;
         for (const court of courtList) {
           const courtParam = court.identifier || court.id;
           const targetUrl = `${baseUrl}/?arenaId=${selectedArenaId}&courtId=${courtParam}`;
@@ -136,14 +137,14 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
             });
             codes[court.id] = dataUrl;
           } catch (qrErr) {
-            console.warn('Erro gerando QR Code para quadra', court.id, qrErr);
+            console.warn('Erro gerando QR Code', court.id, String(qrErr));
           }
         }
         if (isMounted) {
           setQrCodes(codes);
         }
       } catch (err) {
-        console.warn('Erro ao carregar quadras:', err);
+        console.warn('Erro ao carregar quadras:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
       } finally {
         if (isMounted) {
           setIsLoading(false);

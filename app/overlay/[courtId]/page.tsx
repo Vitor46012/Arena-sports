@@ -159,7 +159,7 @@ export default function ObsOverlayPage({
           }
         }
       } catch (err) {
-        console.warn('Erro ao carregar dados do overlay OBS:', err);
+        console.warn('Erro ao carregar dados do overlay OBS:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
       }
     };
 

@@ -97,7 +97,7 @@ export default function CourtsManagementView() {
           }, 1200);
           return;
         }
-        console.warn('Aviso ao listar arenas:', err);
+        console.warn('Aviso ao listar arenas:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
       }
 
       const defaultArena: ArenaOption = {
@@ -161,7 +161,7 @@ export default function CourtsManagementView() {
           }, 1200);
           return;
         }
-        console.warn('Aviso ao carregar quadras:', err);
+        console.warn('Aviso ao carregar quadras:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
       }
 
       if (isMounted) {
@@ -185,7 +185,7 @@ export default function CourtsManagementView() {
         setCourts(Array.isArray(data) ? data : []);
       }
     } catch (err) {
-      console.warn('Aviso ao recarregar quadras:', err);
+      console.warn('Aviso ao recarregar quadras:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
     }
   };
 
@@ -331,7 +331,7 @@ export default function CourtsManagementView() {
             </h2>
           </div>
           <p className="text-xs text-slate-400">
-            Cadastre as quadras da arena para rotear gravações das botoeiras ESP32 e gerar fontes OBS e QR Codes independentes.
+            Cadastre os campos e quadras do seu complexo para gerar os links da live e os QR Codes de acesso aos vídeos.
           </p>
         </div>
 
@@ -443,7 +443,7 @@ export default function CourtsManagementView() {
                   {/* Informações técnicas */}
                   <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 space-y-2 text-xs font-mono">
                     <div className="flex items-center justify-between text-slate-400">
-                      <span>Identificador (Slug):</span>
+                      <span>Identificador do Sistema:</span>
                       <span className="text-orange-400 font-bold">{court.identifier}</span>
                     </div>
                     <div className="flex items-center justify-between text-slate-400">
@@ -468,10 +468,10 @@ export default function CourtsManagementView() {
                     target="_blank"
                     rel="noreferrer"
                     className="flex-1 py-2 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
-                    title="Abrir Fonte de Navegador OBS para esta quadra"
+                    title="Link da Tela (Para a Live)"
                   >
                     <Tv className="w-4 h-4 text-orange-500" />
-                    Overlay OBS
+                    Link da Live
                   </a>
 
                   <a
@@ -544,7 +544,7 @@ export default function CourtsManagementView() {
                   className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-3.5 py-2.5 text-xs font-mono focus:border-orange-500 outline-none"
                 />
                 <p className="text-[11px] text-slate-500 mt-1">
-                  Usado no webhook das botoeiras ESP32 (`courtIdentifier`).
+                  Usado para identificar de qual quadra veio o lance.
                 </p>
               </div>
 
@@ -622,7 +622,7 @@ export default function CourtsManagementView() {
                   className="rounded border-slate-800 bg-slate-950 text-orange-500 focus:ring-0 cursor-pointer"
                 />
                 <label htmlFor="chkCourtActive" className="text-xs text-slate-300 font-medium cursor-pointer">
-                  Quadra ativa para roteamento de gravações
+                  Quadra ativa para receber gravações e lives
                 </label>
               </div>
 
@@ -682,7 +682,7 @@ export default function CourtsManagementView() {
               </p>
 
               <div className="font-mono text-[11px] text-slate-400 bg-slate-900 p-2.5 rounded-lg border border-slate-800/70 space-y-1">
-                <div>Identificador (Slug): <span className="text-orange-400 font-bold">{courtToDelete.identifier}</span></div>
+                <div>Identificador do Sistema: <span className="text-orange-400 font-bold">{courtToDelete.identifier}</span></div>
                 <div>Lances gravados: <span className="text-white font-bold">{courtToDelete._count?.videoClips ?? 0}</span></div>
               </div>
 
@@ -775,7 +775,7 @@ export default function CourtsManagementView() {
                   <span>Atenção: Ação irreversível</span>
                 </div>
                 <p className="text-[11px] text-rose-200/90 leading-relaxed">
-                  Todas as quadras, vinculações de câmeras, nós edge e dados associados a esta arena serão desvinculados e removidos do banco de dados.
+                  Todas as quadras, vinculações de câmeras, equipamentos e dados associados a esta arena serão desvinculados e removidos do banco de dados.
                 </p>
               </div>
             </div>

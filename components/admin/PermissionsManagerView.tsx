@@ -54,7 +54,7 @@ export default function PermissionsManagerView() {
         });
       }
     } catch (err) {
-      console.warn('[LOAD_ARENAS_WARNING]', err);
+      console.warn('[LOAD_ARENAS_WARNING]', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
     }
   }, []);
 

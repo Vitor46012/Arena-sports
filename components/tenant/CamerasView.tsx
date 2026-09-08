@@ -45,7 +45,7 @@ export default function CamerasView() {
           setCameras(data);
         }
       } catch (err) {
-        console.warn('Falha ao carregar câmeras RTSP do banco:', err);
+        console.warn('Falha ao carregar câmeras RTSP do banco:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -68,7 +68,7 @@ export default function CamerasView() {
         prev.map((c) => (c.id === camId ? { ...c, status: 'ONLINE' } : c))
       );
       setReloadingCamId(null);
-      showToast(`Stream RTSP de "${camName}" reconectado com sucesso!`);
+      showToast(`Conexão da câmera "${camName}" reiniciada com sucesso!`);
     }, 1200);
   };
 
@@ -92,10 +92,10 @@ export default function CamerasView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-slate-100 font-['Sora'] tracking-tight">
-            Monitoramento de Câmeras ao Vivo (RTSP)
+            Câmeras da Quadra
           </h1>
           <p className="text-xs md:text-sm text-slate-400 mt-1">
-            Visualização técnica das câmeras instaladas nas quadras via protocolo RTSP local.
+            Acompanhe ao vivo todas as câmeras instaladas no seu complexo esportivo.
           </p>
         </div>
 
@@ -103,7 +103,7 @@ export default function CamerasView() {
           <div className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-2 text-xs font-mono">
             <span className={`w-2 h-2 rounded-full ${activeCount > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></span>
             <span className="text-slate-300">
-              Edge Gateway RTSP: {activeCount}/{cameras.length} Ativos
+              Câmeras: {activeCount}/{cameras.length} Ativas
             </span>
           </div>
         </div>
@@ -156,7 +156,7 @@ export default function CamerasView() {
       {isLoading && (
         <div className="py-20 flex flex-col items-center justify-center gap-3 bg-slate-900 border border-slate-800 rounded-xl">
           <RefreshCw className="w-8 h-8 text-orange-500 animate-spin" />
-          <p className="text-xs font-mono text-slate-400">Carregando canais RTSP do banco de dados...</p>
+          <p className="text-xs font-mono text-slate-400">Carregando a lista de câmeras...</p>
         </div>
       )}
 
@@ -167,10 +167,10 @@ export default function CamerasView() {
             <VideoOff className="w-8 h-8 text-slate-500" />
           </div>
           <h3 className="text-base font-bold text-slate-200 font-['Sora']">
-            Nenhuma câmera RTSP vinculada
+            Nenhuma câmera instalada
           </h3>
           <p className="text-xs text-slate-400 max-w-md mx-auto mt-1.5">
-            Provisione nós Edge na aba de infraestrutura administrativa para conectar os feeds RTSP das quadras.
+            As câmeras vinculadas às quadras do seu complexo aparecerão aqui.
           </p>
         </div>
       )}
@@ -195,14 +195,14 @@ export default function CamerasView() {
                     <div className="flex items-center gap-2 bg-slate-950/90 backdrop-blur-sm border border-slate-800 px-2.5 py-1 rounded text-white text-[11px] font-mono font-bold tracking-wider">
                       <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-red-500 animate-pulse' : 'bg-slate-500'}`}></span>
                       <span className={isOnline ? 'text-red-400' : 'text-slate-400'}>
-                        {isOnline ? 'RTSP FEED' : 'OFFLINE'}
+                        {isOnline ? 'AO VIVO' : 'OFFLINE'}
                       </span>
                       <span className="text-slate-600 font-normal">|</span>
                       <span className="text-slate-300">{cam.fps || 60} FPS</span>
                     </div>
 
                     <div className="flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-sm border border-slate-800 px-2 py-1 rounded text-slate-300 text-[10px] font-mono">
-                      <span title="Resolução nativa do sensor RTSP">Sensor: {cam.resolution || '1920x1080'}</span>
+                      <span title="Resolução da câmera">Qualidade: {cam.resolution || 'Alta (HD)'}</span>
                       <span className="text-slate-600">•</span>
                       <span title="Resolução ajustada ao dispositivo ativo" className="text-orange-400 font-bold flex items-center gap-1">
                         <Sparkles className="w-2.5 h-2.5" />
@@ -231,7 +231,7 @@ export default function CamerasView() {
 
                     <div className="space-y-1 max-w-sm">
                       <p className="text-xs font-mono font-bold text-slate-200 leading-relaxed">
-                        Sinal RTSP detectado. Aguardando servidor de WebRTC/HLS para transcodificação no Edge...
+                        Câmera conectada. Preparando o vídeo ao vivo para você...
                       </p>
                       <p className="text-[11px] font-mono text-slate-400">
                         {cam.rtspUrl}
@@ -260,7 +260,7 @@ export default function CamerasView() {
                   <div className="flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-slate-600'}`}></span>
                     <span className="text-xs text-slate-400 font-medium">
-                      Encoder: <strong className="text-slate-300 font-mono">FFmpeg / Mediamtx Edge</strong>
+                      Encoder: <strong className="text-slate-300 font-mono">Transmissão Automática</strong>
                     </span>
                   </div>
 

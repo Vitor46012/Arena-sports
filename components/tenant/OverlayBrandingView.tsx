@@ -73,7 +73,7 @@ export default function OverlayBrandingView() {
           }, 1200);
           return;
         }
-        console.warn('Aviso ao listar arenas (usando arena padrão):', err);
+        console.warn('Aviso ao listar arenas (usando arena padrão):', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
       }
 
       if (isMounted) {
@@ -125,7 +125,7 @@ export default function OverlayBrandingView() {
           }, 1200);
           return;
         }
-        console.warn('Aviso ao carregar detalhes da arena:', err);
+        console.warn('Aviso ao carregar detalhes da arena:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
       }
 
       if (isMounted) {
@@ -154,7 +154,7 @@ export default function OverlayBrandingView() {
         setOverlayText(data.overlayText || 'AO VIVO • SPORTS REVIEW');
       }
     } catch (err) {
-      console.warn('Aviso ao recarregar detalhes da arena:', err);
+      console.warn('Aviso ao recarregar detalhes da arena:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
     }
   };
 
@@ -273,7 +273,7 @@ export default function OverlayBrandingView() {
       });
 
       if (res.ok) {
-        alert('Configurações de Patrocinadores & Overlay salvas com sucesso! O OBS atualizará no próximo ciclo.');
+        alert('Design e Patrocinadores salvos com sucesso! O visual da live será atualizado em instantes.');
         await reloadArenaDetails();
       } else {
         const err = await res.json();
@@ -321,11 +321,11 @@ export default function OverlayBrandingView() {
               BROADCAST OBS
             </span>
             <h2 className="text-xl font-bold font-['Sora'] text-white">
-              Patrocinadores & Overlay do OBS
+              Design da Live & Patrocinadores
             </h2>
           </div>
           <p className="text-xs text-slate-400">
-            Configure as logos dos patrocinadores, slogans e insira o link na Fonte de Navegador do OBS Studio para transmissão com branding profissional.
+            Configure os patrocinadores, a logo do seu complexo e copie o link para transmitir no seu canal do YouTube com visual profissional.
           </p>
         </div>
 
@@ -554,8 +554,8 @@ export default function OverlayBrandingView() {
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 shadow-lg">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-100">URL para Fonte de Navegador do OBS</h3>
-                  <p className="text-[11px] text-slate-400">Insira esta URL no OBS Studio (Resolução: 1920x1080)</p>
+                  <h3 className="text-sm font-bold text-slate-100">Link para adicionar a Live no YouTube</h3>
+                  <p className="text-[11px] text-slate-400">Copie e cole este link no programa de transmissão (Ex: OBS Studio)</p>
                 </div>
                 {arenaData?.courts && arenaData.courts.length > 0 && (
                   <div className="flex items-center gap-2">
@@ -598,7 +598,7 @@ export default function OverlayBrandingView() {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Preview em Tempo Real do OBS (1080p)
+                  Prévia da Tela da Live
                 </span>
                 <span className="text-[11px] font-mono text-slate-500">Auto-refresh 45s no OBS</span>
               </div>
@@ -815,7 +815,7 @@ export default function OverlayBrandingView() {
               <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-4 text-xs space-y-2">
                 <div className="font-bold text-slate-200 flex items-center gap-1.5">
                   <Info className="w-4 h-4 text-orange-500 shrink-0" />
-                  Como adicionar no OBS Studio:
+                  Como transmitir no YouTube (via OBS Studio):
                 </div>
                 <ol className="list-decimal list-inside text-slate-400 space-y-1 text-[11px]">
                   <li>No OBS, clique em <strong>+ (Adicionar Fonte)</strong> e selecione <strong>Navegador (Browser)</strong>.</li>

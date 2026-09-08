@@ -60,7 +60,7 @@ export default function TenantReplaysView() {
           setVideos(data);
         }
       } catch (err) {
-        console.warn('Falha ao carregar lances B2B:', err);
+        console.warn('Falha ao carregar lances B2B:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -152,7 +152,7 @@ export default function TenantReplaysView() {
             Últimos Replays & Lances Gravados
           </h1>
           <p className="text-xs md:text-sm text-slate-400 mt-1">
-            Galeria B2B de cortes gerados via botoeira física das quadras e sincronizados no banco de dados.
+            Todos os vídeos e melhores momentos gravados no seu complexo esportivo através do botão em quadra.
           </p>
         </div>
 
@@ -173,7 +173,7 @@ export default function TenantReplaysView() {
       {isLoading && (
         <div className="py-16 flex flex-col items-center justify-center gap-3 bg-slate-900 border border-slate-800 rounded-xl">
           <RefreshCw className="w-8 h-8 text-orange-500 animate-spin" />
-          <p className="text-xs font-mono text-slate-400">Carregando replays reais do banco de dados...</p>
+          <p className="text-xs font-mono text-slate-400">Carregando vídeos gravados...</p>
         </div>
       )}
 
@@ -183,7 +183,7 @@ export default function TenantReplaysView() {
           <VideoOff className="w-10 h-10 text-slate-600 mx-auto mb-2" />
           <h3 className="text-sm font-bold text-slate-300">Nenhum lance gravado ainda</h3>
           <p className="text-xs text-slate-500 mt-1">
-            Os vídeos gravados pela botoeira física ou webhook aparecerão aqui automaticamente.
+            Todos os vídeos de lances gravados aparecerão aqui automaticamente.
           </p>
         </div>
       )}
@@ -256,7 +256,7 @@ export default function TenantReplaysView() {
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-slate-400">
-                      <span>{rep.triggerType || 'Botoeira ESP32'}</span>
+                      <span>{rep.triggerType || 'Botão Físico'}</span>
                       <span className="font-mono">{rep.sizeMb ? `${rep.sizeMb} MB` : '12.5 MB'}</span>
                     </div>
 
@@ -264,7 +264,7 @@ export default function TenantReplaysView() {
                     <div className="pt-1">
                       <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                        {isGoogleDrive ? 'Google Drive Gravado' : 'S3 Sincronizado'}
+                        {isGoogleDrive ? 'Google Drive Gravado' : 'Salvo na Nuvem'}
                       </span>
                     </div>
                   </div>

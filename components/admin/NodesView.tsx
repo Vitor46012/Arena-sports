@@ -118,7 +118,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
         }
       }
     } catch (e) {
-      console.warn('Erro ao atualizar lista de nós:', e);
+      console.warn('Erro ao atualizar lista de nós:', e instanceof Error ? e.message : typeof e === "object" ? "Object error" : String(e));
     }
   };
 
@@ -177,7 +177,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
           }, 1200);
           return;
         }
-        console.warn('Aviso ao carregar nós Edge (usando nós locais):', err);
+        console.warn('Aviso ao carregar nós Edge (usando nós locais):', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
       }
 
       if (isMounted) {
@@ -477,7 +477,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
                 <td colSpan={7} className="text-center py-12 text-slate-400">
                   <div className="flex flex-col items-center justify-center gap-3">
                     <RefreshCw className="w-8 h-8 text-orange-500 animate-spin" />
-                    <p className="font-mono text-xs text-slate-400">Carregando nós Edge...</p>
+                    <p className="font-mono text-xs text-slate-400">Carregando nós Edge do PostgreSQL...</p>
                   </div>
                 </td>
               </tr>

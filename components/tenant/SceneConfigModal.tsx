@@ -95,7 +95,7 @@ export default function SceneConfigModal({
             <div className="flex items-center gap-2">
               <Sliders className="w-5 h-5 text-orange-500" />
               <h2 className="text-base font-bold text-slate-100 font-['Sora']">
-                Configuração de Cena OBS
+                Configuração da Tela
               </h2>
             </div>
             <p className="text-xs text-orange-400 font-mono mt-0.5">
@@ -204,10 +204,10 @@ export default function SceneConfigModal({
                 <RefreshCw className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 <div>
                   <h4 className="text-xs font-bold text-slate-200">
-                    Sincronização Edge Local
+                    Sincronização Rápida
                   </h4>
                   <p className="text-[11px] text-slate-400 mt-0.5">
-                    Arquivos são cacheados no Ramdisk do Mini PC localmente na arena para garantir transição instantânea sem atraso de rede.
+                    Arquivos enviados ficam armazenados no sistema para carregamento imediato durante os jogos.
                   </p>
                 </div>
               </div>
@@ -306,7 +306,7 @@ export default function SceneConfigModal({
         <div className="p-4 border-t border-slate-800 bg-slate-950/90 space-y-2">
           {syncSuccess && (
             <div className="p-2 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold text-center animate-in fade-in">
-              Cena sincronizada com o OBS Studio com sucesso!
+              Aparência da tela salva com sucesso!
             </div>
           )}
           <button
@@ -316,7 +316,7 @@ export default function SceneConfigModal({
             className="w-full py-3 bg-orange-500 hover:bg-orange-600 active:scale-[0.99] text-white rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 cursor-pointer"
           >
             <Send className="w-4 h-4" />
-            SINCRONIZAR COM OBS STUDIO
+            SALVAR E ATUALIZAR TELA
           </button>
         </div>
       </div>
