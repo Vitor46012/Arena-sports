@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && NODE_ENV=production next build",
+    "postinstall": "prisma generate",
     "start": "node server.ts",
     "lint": "eslint .",
     "clean": "next clean"
@@ -21,7 +22,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.553.0",
     "motion": "^12.23.24",
-    "next": "^15.0.4",
+    "next": "^16.3.4",
     "pg": "^8.23.0",
     "postcss": "^8.5.6",
     "qrcode": "^1.5.4",
