@@ -239,6 +239,8 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
     return `${mins}:${secs}`;
   };
 
+  const isOnline = telemetry.brokerConnected ?? true;
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-300">
       {/* Toast Notification Container */}
@@ -255,7 +257,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
             <Info className="w-4 h-4 text-orange-400 shrink-0" />
           )}
           <span>{toastMessage.text}</span>
-          </div>
+        </div>
       )}
 
       {/* Header */}
@@ -267,22 +269,28 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
           <p className="text-xs md:text-sm text-slate-400 mt-1">
             Controle do placar, troca de telas na live e gravação de melhores momentos da quadra.
           </p>
-          </div>
+        </div>
 
         <div className="flex items-center gap-3">
-          <div className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-2 text-xs font-mono">
+          <div
+            className={`px-3 py-1.5 rounded-lg border flex items-center gap-2 text-xs font-mono transition-colors ${
+              isOnline
+                ? 'bg-slate-900 border-slate-800 text-slate-300'
+                : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+            }`}
+          >
             <span
               className={`w-2 h-2 rounded-full ${
-                telemetry.brokerConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'
+                isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
               }`}
             ></span>
-            <span className="text-slate-300">
-              {telemetry.brokerConnected
-                ? `Painel de Controle Conectado`
+            <span>
+              {isOnline
+                ? 'Painel Conectado'
                 : 'Equipamento Desconectado - Verifique a energia e internet da quadra'}
             </span>
-            </div>
           </div>
+        </div>
       </div>
 
       {/* Court Selection Tabs */}
@@ -479,8 +487,14 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
               <Film className="w-4 h-4 text-orange-500 shrink-0" />
               Controle da Tela da Live
             </h3>
-            <span className="text-[11px] font-mono text-emerald-400">Conexão Ativa</span>
-            </div>
+            <span
+              className={`text-[11px] font-mono font-semibold ${
+                isOnline ? 'text-emerald-400' : 'text-rose-400'
+              }`}
+            >
+              {isOnline ? 'Conexão Ativa' : 'Equipamento Offline'}
+            </span>
+          </div>
 
           <div className="space-y-3 flex-1 flex flex-col justify-center">
             {SCENES_LIST.map((scene) => {
@@ -503,7 +517,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
                       }`}
                     >
                       <SceneIcon className="w-5 h-5" />
-                      </div>
+                    </div>
                     <div>
                       <h4 className="text-xs font-bold tracking-tight">
                         {scene.label}
@@ -511,8 +525,8 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
                       <p className="text-[11px] text-slate-400 mt-0.5">
                         {scene.description}
                       </p>
-                      </div>
                     </div>
+                  </div>
 
                   {/* Gear icon for Scene Settings Modal */}
                   <button
@@ -526,16 +540,16 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
                   >
                     <Settings className="w-4 h-4" />
                   </button>
-                  </div>
+                </div>
               );
             })}
-            </div>
+          </div>
 
           <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg text-xs text-slate-400 flex items-center justify-between">
             <span className="font-mono text-[11px]">Tela Atual:</span>
             <span className="text-orange-400 font-semibold font-mono">{matchState.activeScene}</span>
-            </div>
           </div>
+        </div>
 
         {/* Column 3: RTMP Destination Settings */}
         <div className="p-5 bg-slate-900 rounded-xl border border-slate-800 flex flex-col justify-between space-y-4 shadow-xl">
@@ -545,7 +559,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
               Configuração da Live / YouTube
             </h3>
             <span className="text-[11px] text-slate-400">YouTube / Twitch</span>
-            </div>
+          </div>
 
           <PermissionGuard 
             permissionKey="transmission.edit_rtmp" 
@@ -642,25 +656,28 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
               <span className="text-slate-200 font-mono">1920x1080 @ 60fps</span>
             </div>
             <div className="flex justify-between text-slate-400">
-              <span>Velocidade de Internet Exigida:</span>
-              <span className="text-slate-200 font-mono">6000 kbps (CBR)</span>
+              <span>Upload Recomendado:</span>
+              <span className="text-slate-200 font-mono">6 Mbps</span>
             </div>
           </div>
-          </div>
+        </div>
       </div>
 
       {/* Master Actions Bar */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-        {/* Master Go Live Button */}
+        {/* Master Go Live Button (Primary) */}
         <div className="md:col-span-2">
           <button
             type="button"
             id="masterGoLiveBtn"
             onClick={handleToggleGoLive}
-            className={`w-full py-4 px-6 rounded-xl font-bold text-sm sm:text-base md:text-lg font-['Sora'] uppercase tracking-wider transition-all flex items-center justify-center gap-2.5 shadow-xl cursor-pointer ${
-              matchState.isLive
-                ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse shadow-red-500/30'
-                : 'bg-orange-500 hover:bg-orange-600 active:scale-[0.99] text-white shadow-orange-500/25'
+            disabled={!isOnline}
+            className={`w-full py-4 px-6 rounded-xl font-bold text-sm sm:text-base md:text-lg font-['Sora'] uppercase tracking-wider transition-all flex items-center justify-center gap-2.5 shadow-xl ${
+              !isOnline
+                ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-50 shadow-none'
+                : matchState.isLive
+                ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse shadow-red-500/30 cursor-pointer'
+                : 'bg-orange-500 hover:bg-orange-600 active:scale-[0.99] text-white shadow-orange-500/25 cursor-pointer'
             }`}
           >
             <Radio className={`w-5 h-5 ${matchState.isLive ? 'animate-pulse' : ''}`} />
@@ -670,19 +687,19 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
                 : 'INICIAR TRANSMISSÃO AO VIVO'}
             </span>
           </button>
-          </div>
+        </div>
 
-        {/* Manual Clip Button */}
+        {/* Manual Clip Button (Secondary Outline) */}
         <div>
           <button
             type="button"
             id="btnManualClip"
             onClick={simulateEdgeUpload}
-            disabled={isSimulatingUpload}
-            className="w-full h-full min-h-[56px] py-3.5 px-4 bg-orange-500 hover:bg-orange-600 disabled:opacity-75 active:scale-[0.99] text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 cursor-pointer disabled:cursor-not-allowed"
+            disabled={!isOnline || isSimulatingUpload}
+            className="w-full h-full min-h-[56px] py-3.5 px-4 bg-slate-800 hover:bg-slate-700 border border-orange-500 text-orange-500 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-black/20"
           >
             {isSimulatingUpload ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
             ) : (
               <Video className="w-5 h-5" />
             )}
@@ -692,7 +709,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
                 : 'GRAVAR LANCE MANUAL (30S)'}
             </span>
           </button>
-          </div>
+        </div>
       </div>
 
       {/* Scene Configuration Modal */}

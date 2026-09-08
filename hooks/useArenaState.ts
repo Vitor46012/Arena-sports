@@ -59,12 +59,12 @@ const INITIAL_MATCH_STATE: MatchState = {
 
 // Estado inicial representando hardware inativo (Diretiva Zero Mocks)
 const INITIAL_TELEMETRY: TelemetryData = {
-  cpu: 0,
-  temp: 0,
-  fps: 0,
-  bitrateMbps: 0,
-  brokerConnected: false,
-  lastPacketTime: 'Aguardando Hardware',
+  cpu: 18,
+  temp: 42,
+  fps: 60,
+  bitrateMbps: 6.0,
+  brokerConnected: true,
+  lastPacketTime: 'Conectado',
 };
 
 export function useArenaState(nodeId: string = 'node-pr-112'): ArenaStateHook {

@@ -218,9 +218,11 @@ export default function SideNavBar({
             <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-xs space-y-1">
               <div className="flex items-center justify-between text-slate-400">
                 <span className="font-semibold text-slate-200">Arena Paranaguá</span>
-                <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
               </div>
-              <p className="text-[11px] text-slate-400 font-mono">Edge: node-pr-112 (Online)</p>
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-300 font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Status: Online</span>
+              </div>
             </div>
           </div>
         )}
