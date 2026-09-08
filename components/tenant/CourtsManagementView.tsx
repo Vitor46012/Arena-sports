@@ -57,10 +57,6 @@ export default function CourtsManagementView() {
   const [courtToDelete, setCourtToDelete] = useState<CourtItem | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
-  // Exclusão Segura de Arena
-  const [arenaToDelete, setArenaToDelete] = useState<ArenaOption | null>(null);
-  const [isDeletingArena, setIsDeletingArena] = useState<boolean>(false);
-
   // Feedback visual (substitui window.alert / confirm bloqueados por iframes)
   const [feedback, setFeedback] = useState<{
     type: 'success' | 'error';
@@ -114,29 +110,6 @@ export default function CourtsManagementView() {
   useEffect(() => {
     loadArenas();
   }, [loadArenas]);
-
-  const confirmDeleteArena = async () => {
-    if (!arenaToDelete) return;
-    try {
-      setIsDeletingArena(true);
-      const res = await fetch(`/api/arenas/${arenaToDelete.id}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.error || 'Falha ao excluir arena.');
-      }
-      const arenaName = arenaToDelete.name;
-      setArenaToDelete(null);
-      showFeedback('success', `Arena "${arenaName}" excluída com sucesso!`);
-      await loadArenas();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro ao excluir arena.';
-      showFeedback('error', msg);
-    } finally {
-      setIsDeletingArena(false);
-    }
-  };
 
   // Carregar quadras da arena selecionada
   useEffect(() => {
@@ -337,31 +310,17 @@ export default function CourtsManagementView() {
 
         <div className="flex items-center gap-3">
           {arenas.length > 0 && (
-            <div className="flex items-center gap-1.5">
-              <select
-                value={selectedArenaId}
-                onChange={(e) => setSelectedArenaId(e.target.value)}
-                className="bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-xs font-semibold focus:border-orange-500 outline-none"
-              >
-                {arenas.map((arena) => (
-                  <option key={arena.id} value={arena.id}>
-                    {arena.name}
-                  </option>
-                ))}
-              </select>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const currentArena = arenas.find((a) => a.id === selectedArenaId);
-                  if (currentArena) setArenaToDelete(currentArena);
-                }}
-                className="p-2 rounded-lg bg-slate-900 hover:bg-rose-500/20 border border-slate-800 hover:border-rose-500/30 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
-                title="Excluir esta arena do sistema"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            <select
+              value={selectedArenaId}
+              onChange={(e) => setSelectedArenaId(e.target.value)}
+              className="bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-xs font-semibold focus:border-orange-500 outline-none"
+            >
+              {arenas.map((arena) => (
+                <option key={arena.id} value={arena.id}>
+                  {arena.name}
+                </option>
+              ))}
+            </select>
           )}
 
           <button
@@ -398,6 +357,7 @@ export default function CourtsManagementView() {
                 : 'https://arena-sports-five.vercel.app';
             const overlayUrl = `${origin}/overlay/${court.id}`;
             const qrUrl = `/admin/qr-codes`;
+            const videoCount = court._count?.videoClips ?? 0;
 
             return (
               <div
@@ -447,15 +407,9 @@ export default function CourtsManagementView() {
                       <span className="text-orange-400 font-bold">{court.identifier}</span>
                     </div>
                     <div className="flex items-center justify-between text-slate-400">
-                      <span>ID Interno:</span>
-                      <span className="text-slate-300 text-[11px] truncate max-w-[140px]" title={court.id}>
-                        {court.id}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-slate-400">
                       <span>Lances Gravados:</span>
                       <span className="text-white font-bold">
-                        {court._count?.videoClips ?? 0} vídeos
+                        {videoCount} {videoCount === 1 ? 'vídeo' : 'vídeos'}
                       </span>
                     </div>
                   </div>
@@ -727,83 +681,6 @@ export default function CourtsManagementView() {
                   <>
                     <Trash2 className="w-4 h-4" />
                     <span>Sim, Excluir Quadra</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE ARENA */}
-      {arenaToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center shrink-0">
-                  <Trash2 className="w-5 h-5 text-rose-400" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold font-['Sora'] text-white">
-                    Excluir Arena
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Remover arena e infraestrutura vinculada
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                disabled={isDeletingArena}
-                onClick={() => setArenaToDelete(null)}
-                className="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer disabled:opacity-50"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="bg-slate-950/80 border border-slate-800/80 rounded-xl p-4 space-y-3 text-xs text-slate-300">
-              <p>
-                Tem certeza de que deseja excluir permanentemente a arena{' '}
-                <strong className="text-white font-semibold">{arenaToDelete.name}</strong>?
-              </p>
-
-              <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-300 space-y-1">
-                <div className="font-bold flex items-center gap-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-rose-400" />
-                  <span>Atenção: Ação irreversível</span>
-                </div>
-                <p className="text-[11px] text-rose-200/90 leading-relaxed">
-                  Todas as quadras, vinculações de câmeras, equipamentos e dados associados a esta arena serão desvinculados e removidos do banco de dados.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                disabled={isDeletingArena}
-                onClick={() => setArenaToDelete(null)}
-                className="px-4 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                disabled={isDeletingArena}
-                onClick={confirmDeleteArena}
-                className="px-4 py-2.5 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-rose-600/20 transition-all cursor-pointer"
-              >
-                {isDeletingArena ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Excluindo...</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    <span>Sim, Excluir Arena</span>
                   </>
                 )}
               </button>
