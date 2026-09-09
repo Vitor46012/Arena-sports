@@ -22,7 +22,7 @@ const nextConfig = (phase) => {
       remotePatterns: [
         {
           protocol: 'https',
-          hostname: 'picsum.photos',
+          hostname: '**',
           port: '',
           pathname: '/**',
         },
