@@ -48,14 +48,14 @@ interface OverlayData {
 const DEFAULT_BROADCAST_SPONSORS = [
   {
     name: 'SPORTS REVIEW PRO',
-    tagline: 'Automação & Transmissão Edge N100',
+    tagline: 'Automação & Transmissão de Vídeo',
     accentColor: 'from-orange-500 to-amber-500',
     logoText: 'SR',
     type: 'Master Partner',
   },
   {
     name: 'FASTREPLAY AI',
-    tagline: 'Clips em 30s • Cloudflare R2 Speed',
+    tagline: 'Clips em 30s • Sincronização em Nuvem',
     accentColor: 'from-cyan-500 to-blue-600',
     logoText: 'FR',
     type: 'Tech Partner',
@@ -499,9 +499,9 @@ export default function ObsOverlayPage() {
         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span className="text-[11px] font-bold text-slate-200">1080p 60FPS</span>
         <span className="text-slate-600">|</span>
-        <span className="text-[11px] text-slate-400">Cloudflare Edge R2</span>
+        <span className="text-[11px] text-slate-400">Sincronização em Nuvem</span>
         <span className="text-slate-600">|</span>
-        <span className="text-[11px] text-orange-400 font-bold">N100 ACCEL</span>
+        <span className="text-[11px] text-orange-400 font-bold">HD AO VIVO</span>
       </div>
 
       {/* ========================================================================= */}

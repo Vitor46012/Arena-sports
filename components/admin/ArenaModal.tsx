@@ -169,7 +169,7 @@ export default function ArenaModal({
                 {arena ? `Editar Arena: ${arena.name}` : 'Provisionar Nova Arena B2B'}
               </h3>
               <p className="text-[11px] text-slate-400">
-                Configuração do Mini PC N100, credenciais RTSP e tópicos MQTT.
+                Configuração da central de processamento e conexões de câmeras.
               </p>
             </div>
           </div>
@@ -224,7 +224,7 @@ export default function ArenaModal({
             }`}
           >
             <Video className="w-4 h-4" />
-            <span>3. Câmeras RTSP ({cameras.length})</span>
+            <span>3. Câmeras ({cameras.length})</span>
           </button>
           <button
             type="button"
@@ -375,7 +375,7 @@ export default function ArenaModal({
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">
-                    Token de Autenticação MQTT Broker
+                    Token de Autenticação da Unidade
                   </label>
                   <button
                     type="button"
@@ -395,7 +395,7 @@ export default function ArenaModal({
               </div>
 
               <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 text-[11px] text-slate-400 space-y-1 font-mono">
-                <p className="text-slate-300 font-bold">Comando de Instalação no Edge:</p>
+                <p className="text-slate-300 font-bold">Comando de Instalação no Sistema:</p>
                 <p className="text-orange-400">
                   curl -sSL https://get.sportsreview.app/bootstrap.sh | sudo bash -s -- --token={mqttToken}
                 </p>
@@ -403,12 +403,12 @@ export default function ArenaModal({
             </div>
           )}
 
-          {/* TAB 3: CÂMERAS RTSP & BOTOEIRAS */}
+          {/* TAB 3: CÂMERAS & BOTOEIRAS */}
           {activeTab === 'cameras' && (
             <div className="space-y-4 animate-in fade-in duration-150">
               <div className="flex items-center justify-between">
                 <span className="text-slate-400 text-xs">
-                  Câmeras IP com compressão H.264/H.265 e botões físicos ESP32.
+                  Câmeras das quadras e botões de acionamento de lances.
                 </span>
                 <button
                   type="button"
@@ -432,17 +432,17 @@ export default function ArenaModal({
                       </span>
                       <div className="flex items-center gap-2">
                         <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
-                          RTSP ATIVO
+                          SINAL ATIVO
                         </span>
                         {cameras.length > 1 && (
                           <button
                             type="button"
                             id={`btnRemoveCamera-${idx}`}
                             onClick={() => handleRemoveCamera(idx)}
-                            className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                            className="p-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer"
                             title={`Remover Quadra ${cam.courtNumber}`}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <X className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>
@@ -451,7 +451,7 @@ export default function ArenaModal({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase block">
-                          URL RTSP Stream
+                          Endereço do Sinal de Vídeo
                         </label>
                         <input
                           type="text"

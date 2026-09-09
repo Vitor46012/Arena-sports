@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { Video, RefreshCw, VideoOff, Radio, Film } from 'lucide-react';
 
-export interface RTSPCameraFeed {
+export interface CameraFeed {
   id: string;
   nodeId?: string;
   court: string;
   name: string;
-  rtspUrl?: string;
+  streamUrl?: string;
   resolution: string;
   fps: number;
   bitrateKbps: number;
@@ -17,7 +17,7 @@ export interface RTSPCameraFeed {
 }
 
 export default function CamerasView() {
-  const [cameras, setCameras] = useState<RTSPCameraFeed[]>([]);
+  const [cameras, setCameras] = useState<CameraFeed[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [reloadingCamId, setReloadingCamId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -69,7 +69,7 @@ export default function CamerasView() {
     }, 1200);
   };
 
-  const handleManualTrigger = (cam: RTSPCameraFeed) => {
+  const handleManualTrigger = (cam: CameraFeed) => {
     showToast(`Corte manual de 30s gravado para ${cam.court}!`);
   };
 

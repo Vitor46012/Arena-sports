@@ -184,11 +184,11 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
         throw new Error(errData.error || `Erro HTTP ${res.status}`);
       }
 
-      showToast('Webhook enviado com sucesso!', 'success');
+      showToast('Lance gravado com sucesso!', 'success');
     } catch (err: unknown) {
-      console.warn('Aviso ao simular webhook do edge node:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
+      console.warn('Aviso ao registrar lance:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
       const message = err instanceof Error ? err.message : 'Erro ao processar';
-      showToast(`Erro no webhook: ${message}`, 'warn');
+      showToast(`Erro ao gravar lance: ${message}`, 'warn');
     } finally {
       setIsSimulatingUpload(false);
     }
@@ -705,7 +705,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
             )}
             <span className="whitespace-nowrap">
               {isSimulatingUpload
-                ? 'ENVIANDO WEBHOOK...'
+                ? 'GRAVANDO LANCE...'
                 : 'GRAVAR LANCE MANUAL (30S)'}
             </span>
           </button>

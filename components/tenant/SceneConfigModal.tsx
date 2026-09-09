@@ -9,7 +9,6 @@ import {
   Volume2,
   VolumeX,
   UploadCloud,
-  Trash2,
   RefreshCw,
   Mic,
   MicOff,
@@ -190,10 +189,10 @@ export default function SceneConfigModal({
                     <button
                       type="button"
                       onClick={() => handleRemoveFile(file)}
-                      className="text-slate-500 hover:text-red-400 p-1 cursor-pointer"
-                      title="Remover"
+                      className="text-slate-500 hover:text-slate-300 p-1 cursor-pointer"
+                      title="Remover arquivo"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                 ))}

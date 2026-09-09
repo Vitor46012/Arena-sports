@@ -319,7 +319,7 @@ export default function ProvisionView() {
             Provisionamento de Infraestrutura
           </h1>
           <p className="text-xs md:text-sm text-slate-400 mt-1">
-            Cadastro de novos clientes, geração de scripts Edge N100 e vinculação de streams RTSP.
+            Cadastro de novos complexos esportivos, ativação de centrais e configuração de câmeras.
           </p>
         </div>
 
@@ -339,7 +339,7 @@ export default function ProvisionView() {
         <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-800">
           <Zap className="w-5 h-5 text-orange-500" />
           <h2 className="text-sm font-bold font-['Sora'] text-slate-100 uppercase tracking-wider">
-            Provisionamento Rápido de Nó Edge (PostgreSQL)
+            Provisionamento Rápido de Central
           </h2>
         </div>
 
@@ -407,7 +407,7 @@ export default function ProvisionView() {
 
           <div className="flex items-center justify-between pt-2">
             <p className="text-[11px] text-slate-500 font-mono">
-              * O token MQTT será gerado de forma autônoma e criptográfica pelo servidor.
+              * O token de autenticação será gerado com criptografia segura pelo servidor.
             </p>
 
             <button
@@ -421,7 +421,7 @@ export default function ProvisionView() {
               ) : (
                 <Save className="w-4 h-4" />
               )}
-              <span>{isSubmitting ? 'Provisionando...' : 'Salvar e Provisionar Nó'}</span>
+              <span>{isSubmitting ? 'Provisionando...' : 'Salvar e Provisionar Unidade'}</span>
             </button>
           </div>
         </form>
@@ -433,7 +433,7 @@ export default function ProvisionView() {
           <div className="flex items-center gap-2">
             <Landmark className="w-5 h-5 text-orange-500" />
             <h2 className="text-sm font-bold font-['Sora'] text-slate-200 uppercase tracking-wider">
-              Arenas & Nós Ativos no PostgreSQL
+              Complexos e Centrais Ativas
             </h2>
           </div>
           <span className="text-xs font-mono text-slate-400">
@@ -448,8 +448,8 @@ export default function ProvisionView() {
                 <th className="py-3 px-4">Arena / Localização</th>
                 <th className="py-3 px-4">Plano</th>
                 <th className="py-3 px-4 text-center">Quadras</th>
-                <th className="py-3 px-4 text-center">Câmeras RTSP</th>
-                <th className="py-3 px-4 font-mono">Edge MAC / IP</th>
+                <th className="py-3 px-4 text-center">Câmeras Ativas</th>
+                <th className="py-3 px-4 font-mono">Endereço MAC / IP</th>
                 <th className="py-3 px-4 text-center">Status</th>
                 <th className="py-3 px-4 text-right">Ações</th>
               </tr>

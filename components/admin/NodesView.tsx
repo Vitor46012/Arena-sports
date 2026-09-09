@@ -237,10 +237,10 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-slate-100 font-['Sora'] tracking-tight">
-            Monitoramento de Frota (Edge NOC)
+            Monitoramento de Centrais e Câmeras
           </h1>
           <p className="text-xs md:text-sm text-slate-400 mt-1">
-            Telemetria em tempo real dos Mini PCs N100 (Node-RED + OBS Studio) nas arenas.
+            Telemetria em tempo real das centrais de captura instaladas nas arenas.
           </p>
         </div>
 
@@ -251,7 +251,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
             className="self-start md:self-auto px-4 py-2.5 bg-orange-500 hover:bg-orange-600 active:scale-[0.99] text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-orange-500/20 cursor-pointer"
           >
             <PlusCircle className="w-4 h-4" />
-            Provisionar Novo Nó
+            Provisionar Nova Central
           </button>
         )}
       </div>
@@ -260,13 +260,13 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Total de Nós</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">Total de Centrais</span>
             <Server className="w-4 h-4 text-slate-500" />
           </div>
           <p className="text-2xl font-bold text-slate-100 font-['Sora'] mt-2">
             {isLoading ? '...' : nodes.length}
           </p>
-          <p className="text-[11px] text-slate-500 mt-0.5 font-mono">100% instâncias N100</p>
+          <p className="text-[11px] text-slate-500 mt-0.5 font-mono">100% integradas</p>
         </div>
 
         <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
@@ -277,7 +277,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
           <p className="text-2xl font-bold text-emerald-400 font-['Sora'] mt-2">
             {isLoading ? '...' : totalOnline}
           </p>
-          <p className="text-[11px] text-emerald-500/80 mt-0.5 font-mono">Sinal RTSP Estável</p>
+          <p className="text-[11px] text-emerald-500/80 mt-0.5 font-mono">Sinal de Vídeo Estável</p>
         </div>
 
         <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
@@ -288,7 +288,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
           <p className="text-2xl font-bold text-orange-400 font-['Sora'] mt-2">
             {isLoading ? '...' : totalWarning}
           </p>
-          <p className="text-[11px] text-orange-500/80 mt-0.5 font-mono">Ramdisk &gt; 80%</p>
+          <p className="text-[11px] text-orange-500/80 mt-0.5 font-mono">Buffer em Uso</p>
         </div>
 
         <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
@@ -299,7 +299,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
           <p className="text-2xl font-bold text-red-400 font-['Sora'] mt-2">
             {isLoading ? '...' : totalOffline}
           </p>
-          <p className="text-[11px] text-red-500/80 mt-0.5 font-mono">Sem MQTT Heartbeat</p>
+          <p className="text-[11px] text-red-500/80 mt-0.5 font-mono">Sem Conexão Ativa</p>
         </div>
       </div>
 
@@ -312,7 +312,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar Node ID, MAC ou Arena..."
+            placeholder="Buscar Identificador, MAC ou Arena..."
             className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-8 py-2.5 text-xs text-slate-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all"
           />
           {searchTerm && (
@@ -393,7 +393,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
 
                   <div className="grid grid-cols-2 gap-2 text-[11px] font-mono bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
                     <div>
-                      <span className="text-slate-500 block text-[10px] uppercase">Node ID</span>
+                      <span className="text-slate-500 block text-[10px] uppercase">Identificador</span>
                       <span className="text-slate-200 font-semibold">{node.nodeId}</span>
                     </div>
                     <div>
@@ -416,7 +416,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
                       onClick={() => handleOpenDetails(node)}
                       className="flex-1 py-2.5 px-3 min-h-[44px] bg-slate-800 hover:bg-slate-700 active:scale-[0.99] border border-slate-700 rounded-xl text-slate-200 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
                     >
-                      <span>Ver Detalhes do Nó</span>
+                      <span>Ver Detalhes da Central</span>
                       <ChevronRight className="w-4 h-4 text-orange-500" />
                     </button>
 
@@ -452,7 +452,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
                 Arena
               </th>
               <th className="py-3 px-4 text-[11px] font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap font-['Inter']">
-                Node ID
+                Identificador
               </th>
               <th className="py-3 px-4 text-[11px] font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap font-['Inter']">
                 MAC Address

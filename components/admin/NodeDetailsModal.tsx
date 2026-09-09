@@ -76,10 +76,10 @@ export default function NodeDetailsModal({ isOpen, node, onClose, onDeleteArena 
   if (!isOpen || !node) return null;
 
   const handleTriggerAction = (actionName: string) => {
-    setActionFeedback(`Comando "${actionName}" transmitido via MQTT para ${node.nodeId}`);
+    setActionFeedback(`Comando "${actionName}" enviado para a central ${node.name || node.nodeId}`);
     setLogs((prev) => [
       ...prev,
-      `[CMD_DISPATCH] MQTT Publish topic="edge/cmd/${node.nodeId}" payload={"action":"${actionName}"}`,
+      `[CMD_DISPATCH] Comando disparado para "${node.name || node.nodeId}" payload={"action":"${actionName}"}`,
     ]);
     setTimeout(() => {
       setActionFeedback(null);
@@ -108,7 +108,7 @@ export default function NodeDetailsModal({ isOpen, node, onClose, onDeleteArena 
             <div className="flex items-center gap-2">
               <Router className="text-orange-500 w-5 h-5" />
               <h2 className="text-base font-bold text-slate-100 font-['Sora']">
-                Detalhes do Nó Edge
+                Detalhes da Unidade Central
               </h2>
               <span className="text-xs font-mono bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">
                 {node.nodeId}
@@ -127,7 +127,7 @@ export default function NodeDetailsModal({ isOpen, node, onClose, onDeleteArena 
                       : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]'
                   }`}
                 />
-                MQTT {node.mqttStatus.toUpperCase()}
+                SISTEMA: {node.mqttStatus.toUpperCase()}
               </span>
             </p>
           </div>
@@ -166,7 +166,7 @@ export default function NodeDetailsModal({ isOpen, node, onClose, onDeleteArena 
             </p>
           </div>
           <div className="p-2 rounded bg-slate-900 border border-slate-800">
-            <p className="text-[10px] uppercase font-bold text-slate-400">RTSP FPS</p>
+            <p className="text-[10px] uppercase font-bold text-slate-400">Quadros (FPS)</p>
             <p className="text-sm font-bold font-mono mt-0.5 text-emerald-400">
               {telemetry.fps}
             </p>
@@ -215,7 +215,7 @@ export default function NodeDetailsModal({ isOpen, node, onClose, onDeleteArena 
             }`}
           >
             <Terminal className="w-4 h-4" />
-            Terminal MQTT
+            Logs da Central
           </button>
         </div>
 
@@ -250,13 +250,13 @@ export default function NodeDetailsModal({ isOpen, node, onClose, onDeleteArena 
 
                 <div>
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                    Câmeras Vinculadas (RTSP Ingest)
+                    Câmeras Vinculadas (Transmissão Ativa)
                   </label>
                   <div className="p-2.5 rounded bg-slate-900 border border-slate-800 text-xs text-slate-300 space-y-1">
                     <div className="flex justify-between font-mono">
                       <span>Quadra 1 - Central:</span>
                       <span className="text-emerald-400">
-                        {node.localIp ? `rtsp://${node.localIp}:554/stream1` : 'rtsp://192.168.15.51:554/stream1'}
+                        Canal Principal (Ativo)
                       </span>
                     </div>
                   </div>
@@ -267,7 +267,7 @@ export default function NodeDetailsModal({ isOpen, node, onClose, onDeleteArena 
                   onClick={() => handleTriggerAction('Salvar Parâmetros de Rede')}
                   className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors mt-2"
                 >
-                  Salvar e Reiniciar Ingest
+                  Salvar e Reiniciar Conexão
                 </button>
               </div>
             </div>
@@ -277,7 +277,7 @@ export default function NodeDetailsModal({ isOpen, node, onClose, onDeleteArena 
           {activeTab === 'actions' && (
             <div className="space-y-4 animate-in fade-in">
               <p className="text-xs text-slate-400">
-                Dispare comandos administrativos remotos diretamente no Edge N100 via broker MQTT autenticado.
+                Dispare comandos administrativos remotos diretamente na unidade local conectada.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -438,7 +438,7 @@ export default function NodeDetailsModal({ isOpen, node, onClose, onDeleteArena 
         {/* Modal Footer */}
         <div className="p-4 border-t border-slate-800 bg-slate-950/80 flex justify-between items-center">
           <span className="text-xs text-slate-500 font-mono">
-            Último pacote MQTT: {telemetry.lastPacketTime || node.lastHeartbeat || 'Hoje'}
+            Última sincronização: {telemetry.lastPacketTime || node.lastHeartbeat || 'Hoje'}
           </span>
           <button
             type="button"

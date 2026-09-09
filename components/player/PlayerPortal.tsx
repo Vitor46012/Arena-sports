@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Monitor, VideoOff, History, Calendar, Play } from 'lucide-react';
+import { Monitor, VideoOff, History, Calendar, Play, Video } from 'lucide-react';
 import VideoPlayerModal, { VideoData } from './VideoPlayerModal';
 import SportsReviewLogo from '@/components/common/SportsReviewLogo';
+import { formatReplayTitle } from '@/components/tenant/TenantReplaysView';
 
 export interface VideoClipItem {
   id: string;
@@ -231,31 +232,12 @@ export default function PlayerPortal({
               Lances da Partida
             </h1>
             <p className="text-xs text-slate-400">
-              Streaming imediato em 1080p 60fps via Cloudflare Edge.
+              Streaming imediato em 1080p 60fps.
             </p>
           </div>
 
           {/* Filtros */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-3 shadow-lg">
-            {arenas.length > 1 && (
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                  Arena
-                </label>
-                <select
-                  value={selectedArena}
-                  onChange={(e) => handleArenaChange(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-xs font-semibold focus:border-orange-500 outline-none cursor-pointer"
-                >
-                  {arenas.map((arena) => (
-                    <option key={arena.id} value={arena.id}>
-                      {arena.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
             {/* Seletor de Quadras (Pills) com no-scrollbar e scroll fluido */}
             {courts.length > 0 && (
               <div>
@@ -386,7 +368,7 @@ export default function PlayerPortal({
                     </div>
 
                     <div className="absolute bottom-2.5 left-2.5 bg-slate-950/80 backdrop-blur-sm border border-slate-700 px-2 py-0.5 rounded text-[10px] font-mono text-slate-300">
-                      {new Date(clip.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date(clip.createdAt))}
                     </div>
 
                     <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-transparent transition-colors">
@@ -399,7 +381,7 @@ export default function PlayerPortal({
                   <div className="p-3.5 flex items-center justify-between">
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
-                        <h4 className="font-mono text-xs font-bold text-slate-100">{clip.machineName}</h4>
+                        <h4 className="font-mono text-xs font-bold text-slate-100">{formatReplayTitle(clip.machineName, clip.createdAt)}</h4>
                         {clip.courtName && (
                           <span className="px-1.5 py-0.5 rounded bg-orange-500/10 border border-orange-500/20 text-orange-400 font-mono text-[9px] font-bold">
                             {clip.courtName}

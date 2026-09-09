@@ -89,7 +89,7 @@ export default function InvoiceModal({
             </div>
             <div className="flex justify-between items-center text-xs">
               <span className="text-slate-400">
-                Custo Armazenamento R2 ({invoice.s3StorageGb} GB):
+                Armazenamento em Nuvem ({invoice.s3StorageGb} GB):
               </span>
               <span className="text-slate-200 font-semibold font-mono">
                 {invoice.s3Cost.toLocaleString('pt-BR', {

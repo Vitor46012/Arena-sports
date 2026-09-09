@@ -4,6 +4,7 @@ import React, { useRef, useState } from 'react';
 import { X, Share2, Download, RefreshCw, Check, Sparkles, SlidersHorizontal } from 'lucide-react';
 import { useDeviceLayout } from '@/contexts/DeviceLayoutContext';
 import { RESOLUTION_PRESETS, ResolutionKey } from '@/lib/deviceDetection';
+import { formatReplayTitle } from '@/components/tenant/TenantReplaysView';
 
 export interface VideoData {
   id: string;
@@ -97,7 +98,7 @@ export default function VideoPlayerModal({ isOpen, videoData, onClose }: VideoPl
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-mono text-sm font-bold text-slate-100">
-                {videoData.machineName}
+                {formatReplayTitle(videoData.machineName, videoData.createdAt)}
               </h3>
 
               {/* Dynamic Resolution Badge with Quick Selector */}
@@ -242,8 +243,7 @@ export default function VideoPlayerModal({ isOpen, videoData, onClose }: VideoPl
           <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 text-xs text-slate-400 font-mono self-start sm:self-auto">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span>Edge CDN</span>
-              {videoData.sizeMb ? ` • ${videoData.sizeMb} MB` : ''}
+              <span>Qualidade HD</span>
             </div>
             <span className="hidden sm:inline text-slate-600">•</span>
             <span className="text-[11px] text-orange-400/90 font-medium">

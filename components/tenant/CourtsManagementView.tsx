@@ -341,7 +341,8 @@ export default function CourtsManagementView() {
               typeof window !== 'undefined' && window.location.origin
                 ? window.location.origin
                 : 'https://arena-sports-five.vercel.app';
-            const overlayUrl = `${origin}/overlay/${court.identifier || court.id}`;
+            const courtSlug = court.identifier || court.name.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'quadra-1';
+            const overlayUrl = `${origin}/overlay/${courtSlug}`;
             const qrUrl = `/admin/qr-codes`;
             const videoCount = court._count?.videoClips ?? 0;
 
@@ -370,18 +371,11 @@ export default function CourtsManagementView() {
                       <button
                         type="button"
                         onClick={() => openEdit(court)}
-                        title="Editar quadra"
-                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+                        title="Configurar quadra"
+                        className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                       >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => requestDeleteCourt(court)}
-                        title="Excluir quadra"
-                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>Configurar</span>
                       </button>
                     </div>
                   </div>
@@ -390,7 +384,7 @@ export default function CourtsManagementView() {
                   <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 space-y-2 text-xs font-mono">
                     <div className="flex items-center justify-between text-slate-400">
                       <span>Identificador do Sistema:</span>
-                      <span className="text-orange-400 font-bold">{court.identifier}</span>
+                      <span className="text-orange-400 font-bold">{courtSlug}</span>
                     </div>
                     <div className="flex items-center justify-between text-slate-400">
                       <span>Lances Gravados:</span>
@@ -566,21 +560,34 @@ export default function CourtsManagementView() {
                 </label>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3">
+              <div className="flex items-center justify-between pt-3 border-t border-slate-800/80">
                 <button
                   type="button"
-                  onClick={() => setEditingCourt(null)}
-                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
+                  onClick={() => {
+                    const target = editingCourt;
+                    setEditingCourt(null);
+                    if (target) requestDeleteCourt(target);
+                  }}
+                  className="text-xs text-rose-400 hover:text-rose-300 font-semibold cursor-pointer"
                 >
-                  Cancelar
+                  Excluir esta quadra
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !editName.trim()}
-                  className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-orange-500/20 cursor-pointer"
-                >
-                  {isSubmitting ? 'Atualizando...' : 'Salvar Alterações'}
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditingCourt(null)}
+                    className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !editName.trim()}
+                    className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-orange-500/20 cursor-pointer"
+                  >
+                    {isSubmitting ? 'Atualizando...' : 'Salvar Alterações'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

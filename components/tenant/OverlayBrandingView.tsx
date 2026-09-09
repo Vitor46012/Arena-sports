@@ -162,7 +162,7 @@ export default function OverlayBrandingView() {
   const fallbackPreviewSponsors = [
     { name: 'Sports Review Pro', tag: 'Master Partner', color: 'from-orange-500 to-amber-500', text: 'SR' },
     { name: 'FastReplay AI', tag: 'Tech Partner', color: 'from-cyan-500 to-blue-600', text: 'FR' },
-    { name: 'EdgeVision 4K', tag: 'Official Partner', color: 'from-emerald-500 to-teal-600', text: 'EV' },
+    { name: 'SportVision 4K', tag: 'Official Partner', color: 'from-emerald-500 to-teal-600', text: 'SV' },
   ];
   const activeSponsors = [sponsor1Url, sponsor2Url, sponsor3Url].filter(Boolean);
   const totalPreviewSponsors = activeSponsors.length > 0 ? activeSponsors.length : fallbackPreviewSponsors.length;
@@ -338,18 +338,10 @@ export default function OverlayBrandingView() {
         </div>
 
         <div className="flex items-center gap-3">
-          {arenas.length > 1 && (
-            <select
-              value={selectedArenaId}
-              onChange={(e) => setSelectedArenaId(e.target.value)}
-              className="bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-xs font-semibold focus:border-orange-500 outline-none"
-            >
-              {arenas.map((arena) => (
-                <option key={arena.id} value={arena.id}>
-                  {arena.name}
-                </option>
-              ))}
-            </select>
+          {arenaData?.name && (
+            <span className="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-300 text-xs font-semibold">
+              {arenaData.name}
+            </span>
           )}
 
           <button
@@ -415,7 +407,7 @@ export default function OverlayBrandingView() {
                 >
                   <ImagePlus className="w-7 h-7 text-slate-500 mx-auto mb-1" />
                   <p className="text-xs font-semibold text-slate-400">Clique para enviar a logo da arena</p>
-                  <span className="text-[10px] text-slate-600">PNG, WEBP ou SVG (Máx 8MB)</span>
+                  <span className="text-[10px] text-slate-600">PNG, WEBP ou SVG (Alta Resolução)</span>
                 </div>
               )}
             </div>

@@ -100,7 +100,7 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
         const QRCodeModule = await import('qrcode');
         const QRCode = QRCodeModule.default || QRCodeModule;
         for (const court of courtList) {
-          const courtSlug = court.identifier || court.id;
+          const courtSlug = court.identifier || court.name.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'quadra-1';
           const targetUrl = `${baseUrl}/replays/${courtSlug}`;
           try {
             const dataUrl = await QRCode.toDataURL(targetUrl, {
@@ -152,7 +152,7 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
 
   const copyUrl = (court: CourtData) => {
     const baseUrl = getBaseUrl();
-    const courtSlug = court.identifier || court.id;
+    const courtSlug = court.identifier || court.name.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'quadra-1';
     const targetUrl = `${baseUrl}/replays/${courtSlug}`;
     navigator.clipboard.writeText(targetUrl);
     alert(`Link da ${court.name} copiado para a área de transferência!`);
@@ -161,9 +161,10 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
   const downloadQr = (court: CourtData) => {
     const dataUrl = qrCodes[court.id];
     if (!dataUrl) return;
+    const courtSlug = court.identifier || court.name.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'quadra-1';
     const a = document.createElement('a');
     a.href = dataUrl;
-    a.download = `qrcode_${court.identifier || court.id}.png`;
+    a.download = `qrcode_${courtSlug}.png`;
     a.click();
   };
 
@@ -284,7 +285,7 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
               .map((court) => {
                 const qrUrl = qrCodes[court.id];
                 const baseUrl = getBaseUrl();
-                const courtSlug = court.identifier || court.id;
+                const courtSlug = court.identifier || court.name.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'quadra-1';
                 const directUrl = `${baseUrl}/replays/${courtSlug}`;
 
                 return (
@@ -364,7 +365,7 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
 
                       {/* Rodapé técnico do totem */}
                       <div className="pt-4 border-t border-slate-800 text-[10px] font-mono text-slate-400 flex flex-wrap items-center justify-between gap-2">
-                        <span>Código: {court.identifier || court.id}</span>
+                        <span>Identificador: {courtSlug}</span>
                         <span className="text-right text-slate-300 font-semibold select-all break-all">{directUrl}</span>
                       </div>
                     </div>
