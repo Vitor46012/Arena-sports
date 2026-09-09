@@ -1,28 +1,34 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Use standalone output for container/Cloud Run builds, standard output for Vercel
-  output: process.env.VERCEL ? undefined : 'standalone',
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  serverExternalPackages: [
-    '@prisma/client',
-    'prisma',
-    '@opentelemetry/api',
-    '@opentelemetry/core',
-    '@aws-sdk/client-s3',
-    'pg',
-  ],
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-        port: '',
-        pathname: '/**',
-      },
+import { PHASE_DEVELOPMENT_SERVER } from 'next/constants.js';
+
+/** @type {(phase: string) => import('next').NextConfig} */
+const nextConfig = (phase) => {
+  const isDev = phase === PHASE_DEVELOPMENT_SERVER || process.env.NODE_ENV === 'development';
+  return {
+    distDir: isDev ? '.next-dev' : '.next',
+    output: 'standalone',
+    typescript: {
+      ignoreBuildErrors: true,
+    },
+    allowedDevOrigins: ['ais-dev-*.run.app', 'ais-pre-*.run.app', '*.run.app', 'localhost:3000'],
+    serverExternalPackages: [
+      '@prisma/client',
+      'prisma',
+      '@opentelemetry/api',
+      '@opentelemetry/core',
+      '@aws-sdk/client-s3',
+      'pg',
     ],
-  },
+    images: {
+      remotePatterns: [
+        {
+          protocol: 'https',
+          hostname: 'picsum.photos',
+          port: '',
+          pathname: '/**',
+        },
+      ],
+    },
+  };
 };
 
 export default nextConfig;

@@ -18,12 +18,7 @@ export async function GET() {
     return NextResponse.json(match, { status: 200 });
   } catch (error: unknown) {
     console.error("[GET_MATCH_ERROR]", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Erro interno ao buscar partida.";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json(null, { status: 200 });
   }
 }
 

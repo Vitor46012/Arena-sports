@@ -100,8 +100,8 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
         const QRCodeModule = await import('qrcode');
         const QRCode = QRCodeModule.default || QRCodeModule;
         for (const court of courtList) {
-          const courtParam = court.identifier || court.id;
-          const targetUrl = `${baseUrl}/?arenaId=${selectedArenaId}&courtId=${courtParam}`;
+          const courtSlug = court.identifier || court.id;
+          const targetUrl = `${baseUrl}/replays/${courtSlug}`;
           try {
             const dataUrl = await QRCode.toDataURL(targetUrl, {
               width: 512,
@@ -152,8 +152,8 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
 
   const copyUrl = (court: CourtData) => {
     const baseUrl = getBaseUrl();
-    const courtParam = court.identifier || court.id;
-    const targetUrl = `${baseUrl}/?arenaId=${selectedArenaId}&courtId=${courtParam}`;
+    const courtSlug = court.identifier || court.id;
+    const targetUrl = `${baseUrl}/replays/${courtSlug}`;
     navigator.clipboard.writeText(targetUrl);
     alert(`Link da ${court.name} copiado para a área de transferência!`);
   };
@@ -250,23 +250,10 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
         </div>
       </header>
 
-      {/* BARRA DE FILTRO POR ARENA (Não impresso) */}
+      {/* BARRA DE STATUS / CONTAGEM (Não impresso) */}
       <div className="no-print max-w-6xl mx-auto mb-8 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-lg">
-        <div className="flex items-center gap-3">
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Arena:
-          </label>
-          <select
-            value={selectedArenaId}
-            onChange={(e) => setSelectedArenaId(e.target.value)}
-            className="bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-3.5 py-2 text-xs font-semibold focus:border-orange-500 outline-none min-w-[240px]"
-          >
-            {arenas.map((arena) => (
-              <option key={arena.id} value={arena.id}>
-                {arena.name}
-              </option>
-            ))}
-          </select>
+        <div className="text-xs font-semibold text-slate-300">
+          {selectedArena?.name || 'Arena Esportiva'}
         </div>
 
         <div className="text-xs font-mono text-slate-400">
@@ -297,16 +284,16 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
               .map((court) => {
                 const qrUrl = qrCodes[court.id];
                 const baseUrl = getBaseUrl();
-                const courtParam = court.identifier || court.id;
-                const directUrl = `${baseUrl}/?arenaId=${selectedArenaId}&courtId=${courtParam}`;
+                const courtSlug = court.identifier || court.id;
+                const directUrl = `${baseUrl}/replays/${courtSlug}`;
 
                 return (
                   <div
                     key={court.id}
-                    className="totem-card bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 flex flex-col items-center text-center shadow-2xl relative transition-all group hover:border-slate-700"
+                    className="totem-card bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 pt-14 sm:pt-8 flex flex-col items-center text-center shadow-2xl relative transition-all group hover:border-slate-700"
                   >
                     {/* BARRINHA DE AÇÕES RÁPIDAS (Não impresso) */}
-                    <div className="no-print absolute top-4 right-4 flex items-center gap-1.5">
+                    <div className="no-print absolute top-3.5 right-3.5 flex items-center gap-1.5 z-10">
                       <button
                         type="button"
                         onClick={() => copyUrl(court)}
@@ -337,7 +324,7 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
                     <div className="w-full space-y-4">
                       {/* Topo do Totem */}
                       <div className="flex flex-col items-center space-y-2">
-                        <div className="px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono font-bold text-[11px] uppercase tracking-widest totem-accent">
+                        <div className="px-3.5 py-1 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono font-bold text-[10px] sm:text-[11px] uppercase tracking-wider totem-accent whitespace-nowrap text-center inline-flex items-center justify-center max-w-full">
                           SPORTS REVIEW • REPLAY AUTOMÁTICO
                         </div>
                         <h2 className="text-2xl sm:text-3xl font-black font-['Sora'] text-white uppercase tracking-tight">
@@ -376,9 +363,9 @@ export default function QrCodesView({ embedded = false }: QrCodesViewProps) {
                       </div>
 
                       {/* Rodapé técnico do totem */}
-                      <div className="pt-4 border-t border-slate-800 text-[10px] font-mono text-slate-400 flex items-center justify-between gap-2">
+                      <div className="pt-4 border-t border-slate-800 text-[10px] font-mono text-slate-400 flex flex-wrap items-center justify-between gap-2">
                         <span>Código: {court.identifier || court.id}</span>
-                        <span className="truncate max-w-[280px] text-right text-slate-300 font-semibold select-all">{directUrl}</span>
+                        <span className="text-right text-slate-300 font-semibold select-all break-all">{directUrl}</span>
                       </div>
                     </div>
                   </div>

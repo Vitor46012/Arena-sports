@@ -43,9 +43,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(courts, { status: 200 });
   } catch (error: unknown) {
     console.error("[GET_COURTS_ERROR]", error);
-    const message =
-      error instanceof Error ? error.message : "Erro ao carregar lista de quadras.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json([], { status: 200 });
   }
 }
 

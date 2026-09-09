@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useRef, use, useTransition } from 'react';
+import React, { useEffect, useState, useRef, useTransition } from 'react';
+import { useParams } from 'next/navigation';
 import {
   QrCode,
   Radio,
@@ -75,13 +76,9 @@ const DEFAULT_BROADCAST_SPONSORS = [
   },
 ];
 
-export default function ObsOverlayPage({
-  params,
-}: {
-  params: Promise<{ courtId: string }>;
-}) {
-  const resolvedParams = use(params);
-  const courtId = resolvedParams.courtId;
+export default function ObsOverlayPage() {
+  const routeParams = useParams();
+  const courtId = typeof routeParams?.courtId === 'string' ? routeParams.courtId : Array.isArray(routeParams?.courtId) ? routeParams.courtId[0] : '';
 
   const [data, setData] = useState<OverlayData | null>(null);
   const [currentSponsorIndex, setCurrentSponsorIndex] = useState(0);

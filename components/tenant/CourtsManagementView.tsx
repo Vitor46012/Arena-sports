@@ -308,21 +308,7 @@ export default function CourtsManagementView() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          {arenas.length > 0 && (
-            <select
-              value={selectedArenaId}
-              onChange={(e) => setSelectedArenaId(e.target.value)}
-              className="bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-xs font-semibold focus:border-orange-500 outline-none"
-            >
-              {arenas.map((arena) => (
-                <option key={arena.id} value={arena.id}>
-                  {arena.name}
-                </option>
-              ))}
-            </select>
-          )}
-
+        <div>
           <button
             type="button"
             onClick={() => setIsCreateOpen(true)}
@@ -430,11 +416,11 @@ export default function CourtsManagementView() {
 
                   <a
                     href={qrUrl}
-                    className="flex-1 py-2 px-2.5 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-400 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                    className="flex-1 py-2 px-2.5 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-400 text-xs font-semibold flex items-center justify-center transition-colors"
                     title="Gerar e imprimir totem com QR Code"
                   >
-                    <QrCode className="w-4 h-4" />
-                    Totem / QR
+                    <QrCode className="w-4 h-4 mr-2 shrink-0" />
+                    <span>Totem / QR</span>
                   </a>
                 </div>
               </div>

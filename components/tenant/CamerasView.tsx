@@ -1,15 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Video, RefreshCw, VideoOff, Radio, Film, Cpu, Sparkles, Monitor, Smartphone, Tablet, Tv } from 'lucide-react';
-import { useDeviceLayout } from '@/contexts/DeviceLayoutContext';
+import { Video, RefreshCw, VideoOff, Radio, Film } from 'lucide-react';
 
 export interface RTSPCameraFeed {
   id: string;
   nodeId?: string;
   court: string;
   name: string;
-  rtspUrl: string;
+  rtspUrl?: string;
   resolution: string;
   fps: number;
   bitrateKbps: number;
@@ -22,8 +21,6 @@ export default function CamerasView() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [reloadingCamId, setReloadingCamId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const { deviceSpecs, targetResolution, resolutionPreference } = useDeviceLayout();
 
   const showToast = (text: string) => {
     setToastMessage(text);
@@ -45,7 +42,7 @@ export default function CamerasView() {
           setCameras(data);
         }
       } catch (err) {
-        console.warn('Falha ao carregar câmeras RTSP do banco:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
+        console.warn('Falha ao carregar câmeras do banco:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -109,49 +106,6 @@ export default function CamerasView() {
         </div>
       </div>
 
-      {/* Automatic Device & Resolution Diagnostic Banner */}
-      <div
-        suppressHydrationWarning
-        className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg"
-      >
-        <div className="flex items-start sm:items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0">
-            {deviceSpecs.formFactor === 'mobile' ? (
-              <Smartphone className="w-5 h-5" />
-            ) : deviceSpecs.formFactor === 'tablet' ? (
-              <Tablet className="w-5 h-5" />
-            ) : deviceSpecs.formFactor === 'tv' ? (
-              <Tv className="w-5 h-5" />
-            ) : (
-              <Monitor className="w-5 h-5" />
-            )}
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-mono font-bold text-slate-200">
-                Dispositivo Identificado: <span className="text-orange-400">{deviceSpecs.modelName}</span> ({deviceSpecs.osName})
-              </span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                Resolução Automática
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Tela: <strong className="text-slate-300 font-mono">{deviceSpecs.screen.physicalWidth}x{deviceSpecs.screen.physicalHeight}px</strong> (DPR {deviceSpecs.screen.dpr}x) • Formato: <span className="text-slate-300 font-mono">{deviceSpecs.aspectRatio.label}</span> • Diagnóstico: {deviceSpecs.detectionReason}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 self-start md:self-auto bg-slate-950/80 px-3 py-2 rounded-lg border border-slate-800 text-xs font-mono shrink-0">
-          <Sparkles className="w-4 h-4 text-orange-400 shrink-0" />
-          <div>
-            <div className="text-[10px] text-slate-500 uppercase">Perfil de Transmissão</div>
-            <div className="font-bold text-orange-400">
-              {targetResolution.shortTag} ({targetResolution.width}x{targetResolution.height})
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Loading State */}
       {isLoading && (
         <div className="py-20 flex flex-col items-center justify-center gap-3 bg-slate-900 border border-slate-800 rounded-xl">
@@ -188,9 +142,9 @@ export default function CamerasView() {
                 id={`cam-container-${cam.id}`}
                 className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl flex flex-col justify-between"
               >
-                {/* RTSP Native Container (Zero Fake Images / Raw RTSP Signaling View) */}
+                {/* Video Signal Placeholder Container */}
                 <div className="relative w-full aspect-video bg-black overflow-hidden group flex flex-col justify-between p-4">
-                  {/* Status Badge Top Left */}
+                  {/* Status Badge Top Left and Quality Top Right */}
                   <div className="flex items-center justify-between w-full z-10">
                     <div className="flex items-center gap-2 bg-slate-950/90 backdrop-blur-sm border border-slate-800 px-2.5 py-1 rounded text-white text-[11px] font-mono font-bold tracking-wider">
                       <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-red-500 animate-pulse' : 'bg-slate-500'}`}></span>
@@ -201,17 +155,12 @@ export default function CamerasView() {
                       <span className="text-slate-300">{cam.fps || 60} FPS</span>
                     </div>
 
-                    <div className="flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-sm border border-slate-800 px-2 py-1 rounded text-slate-300 text-[10px] font-mono">
-                      <span title="Resolução da câmera">Qualidade: {cam.resolution || 'Alta (HD)'}</span>
-                      <span className="text-slate-600">•</span>
-                      <span title="Resolução ajustada ao dispositivo ativo" className="text-orange-400 font-bold flex items-center gap-1">
-                        <Sparkles className="w-2.5 h-2.5" />
-                        {targetResolution.shortTag}
-                      </span>
+                    <div className="flex items-center bg-slate-950/90 backdrop-blur-sm border border-slate-800 px-2.5 py-1 rounded text-slate-300 text-[10px] font-mono">
+                      <span>Alta Resolução (1080p)</span>
                     </div>
                   </div>
 
-                  {/* Central Technical Loading / WebRTC Transcoding Box */}
+                  {/* Central Video Connection Indicator */}
                   <div className="my-auto flex flex-col items-center justify-center text-center px-6 py-4 space-y-3 z-10">
                     <div className="relative">
                       <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-orange-500 shadow-inner">
@@ -231,10 +180,7 @@ export default function CamerasView() {
 
                     <div className="space-y-1 max-w-sm">
                       <p className="text-xs font-mono font-bold text-slate-200 leading-relaxed">
-                        Câmera conectada. Preparando o vídeo ao vivo para você...
-                      </p>
-                      <p className="text-[11px] font-mono text-slate-400">
-                        {cam.rtspUrl}
+                        Conectando ao sinal de vídeo...
                       </p>
                     </div>
                   </div>
@@ -249,9 +195,6 @@ export default function CamerasView() {
                         {cam.name}
                       </h3>
                     </div>
-                    <span className="text-[10px] font-mono text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
-                      Porta 554 • H.264
-                    </span>
                   </div>
                 </div>
 
@@ -260,7 +203,7 @@ export default function CamerasView() {
                   <div className="flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-slate-600'}`}></span>
                     <span className="text-xs text-slate-400 font-medium">
-                      Encoder: <strong className="text-slate-300 font-mono">Transmissão Automática</strong>
+                      Status: <strong className="text-slate-300 font-mono">{isOnline ? 'Online' : 'Offline'}</strong>
                     </span>
                   </div>
 

@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   RefreshCw,
   VideoOff,
+  Video,
   Play,
   Download,
   Share2,
@@ -15,6 +16,7 @@ import {
 export interface B2BVideoClipItem {
   id: string;
   machineName: string;
+  thumbnailUrl?: string | null;
   driveFileId?: string | null;
   s3Url?: string | null;
   s3Key?: string | null;
@@ -29,6 +31,49 @@ export interface B2BVideoClipItem {
     id: string;
     name: string;
   };
+}
+
+/**
+ * Converte timestamp Unix (presente no nome do arquivo ou createdAt) em formato legível de data
+ * Exemplo: 16 Set - 10:24h
+ */
+export function formatReplayTitle(machineName?: string, createdAt?: string): string {
+  if (!machineName && !createdAt) return 'Replay Gravado';
+
+  let date: Date | null = null;
+
+  if (machineName) {
+    const match = machineName.match(/\d{10,13}/);
+    if (match) {
+      const rawNum = parseInt(match[0], 10);
+      const timestampMs = match[0].length === 10 ? rawNum * 1000 : rawNum;
+      const candidate = new Date(timestampMs);
+      if (!isNaN(candidate.getTime())) {
+        date = candidate;
+      }
+    }
+  }
+
+  if (!date && createdAt) {
+    const candidate = new Date(createdAt);
+    if (!isNaN(candidate.getTime())) {
+      date = candidate;
+    }
+  }
+
+  if (!date) return 'Replay Gravado';
+
+  try {
+    const day = date.getDate();
+    const monthFormatter = new Intl.DateTimeFormat('pt-BR', { month: 'short' });
+    let month = monthFormatter.format(date).replace('.', '');
+    month = month.charAt(0).toUpperCase() + month.slice(1);
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day} ${month} - ${hours}:${minutes}h`;
+  } catch {
+    return 'Replay Gravado';
+  }
 }
 
 export default function TenantReplaysView() {
@@ -88,24 +133,27 @@ export default function TenantReplaysView() {
 
   const handleOpenPlayer = (v: B2BVideoClipItem) => {
     const url = getVideoPlaybackUrl(v);
+    const displayTitle = formatReplayTitle(v.machineName, v.createdAt);
     setSelectedVideoUrl(url);
-    setSelectedVideoName(v.machineName);
+    setSelectedVideoName(displayTitle);
   };
 
   const handleDownload = (v: B2BVideoClipItem) => {
     const downloadUrl = getDirectDownloadUrl(v);
+    const displayTitle = formatReplayTitle(v.machineName, v.createdAt);
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
-    link.download = `${v.machineName}.mp4`;
+    link.download = `${v.machineName || 'replay'}.mp4`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast(`Download de ${v.machineName} iniciado!`);
+    showToast(`Download de "${displayTitle}" iniciado!`);
   };
 
   const handleShareLink = (v: B2BVideoClipItem) => {
+    const displayTitle = formatReplayTitle(v.machineName, v.createdAt);
     const shareUrl = v.driveFileId
       ? `https://drive.google.com/file/d/${v.driveFileId}/view`
       : `${window.location.origin}/lance/${v.machineName}`;
@@ -113,7 +161,7 @@ export default function TenantReplaysView() {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(shareUrl).catch(() => {});
     }
-    showToast(`Link de ${v.machineName} copiado para a área de transferência!`);
+    showToast(`Link de "${displayTitle}" copiado para a área de transferência!`);
   };
 
   const handleManualSyncAll = async () => {
@@ -193,6 +241,7 @@ export default function TenantReplaysView() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {videos.map((rep) => {
             const isGoogleDrive = !!rep.driveFileId;
+            const displayTitle = formatReplayTitle(rep.machineName, rep.createdAt);
             const formattedDate = rep.createdAt
               ? new Date(rep.createdAt).toLocaleTimeString('pt-BR', {
                   hour: '2-digit',
@@ -204,27 +253,41 @@ export default function TenantReplaysView() {
             return (
               <div
                 key={rep.id}
-                id={`replay-card-${rep.machineName}`}
+                id={`replay-card-${rep.id}`}
                 className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg flex flex-col justify-between hover:border-slate-700 transition-all group"
               >
                 {/* Video / Thumbnail Box */}
                 <div
                   onClick={() => handleOpenPlayer(rep)}
-                  className="relative w-full aspect-video bg-black overflow-hidden cursor-pointer group/thumb"
+                  className="relative w-full aspect-video bg-slate-800 overflow-hidden cursor-pointer group/thumb flex items-center justify-center"
                 >
-                  {isGoogleDrive ? (
+                  {rep.thumbnailUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={rep.thumbnailUrl}
+                      alt={displayTitle}
+                      className="w-full h-full object-cover opacity-85 group-hover/thumb:opacity-100 transition-opacity"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  ) : isGoogleDrive ? (
                     <iframe
                       src={`https://drive.google.com/file/d/${rep.driveFileId}/preview`}
                       className="w-full h-full border-0 pointer-events-none opacity-85 group-hover/thumb:opacity-100 transition-opacity"
-                      title={rep.machineName}
+                      title={displayTitle}
                       loading="lazy"
                     />
-                  ) : (
+                  ) : rep.s3Url ? (
                     <video
-                      src={rep.s3Url || ''}
+                      src={rep.s3Url}
                       preload="metadata"
                       className="w-full h-full object-cover opacity-85 group-hover/thumb:opacity-100 transition-opacity"
                     />
+                  ) : (
+                    <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                      <Video className="w-8 h-8 text-slate-500" />
+                    </div>
                   )}
 
                   {/* Duration Tag */}
@@ -250,14 +313,13 @@ export default function TenantReplaysView() {
                 <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-slate-100 tracking-wide truncate max-w-[180px]">
-                        {rep.machineName}
+                      <span className="font-mono text-xs font-bold text-slate-100 tracking-wide truncate max-w-[200px]" title={displayTitle}>
+                        {displayTitle}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <div className="flex items-center text-[11px] text-slate-400">
                       <span>{rep.triggerType || 'Botão Físico'}</span>
-                      <span className="font-mono">{rep.sizeMb ? `${rep.sizeMb} MB` : '12.5 MB'}</span>
                     </div>
 
                     {/* Storage Cloud Badge */}

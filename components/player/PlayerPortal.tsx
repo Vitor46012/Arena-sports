@@ -35,6 +35,8 @@ export interface CourtItem {
 
 interface PlayerPortalProps {
   onBackToDashboard?: () => void;
+  initialCourtParam?: string;
+  initialArenaId?: string;
 }
 
 function getBrasiliaDateString(date: Date = new Date()): string {
@@ -50,9 +52,14 @@ function getBrasiliaDateString(date: Date = new Date()): string {
   }
 }
 
-export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps = {}) {
+export default function PlayerPortal({
+  onBackToDashboard,
+  initialCourtParam,
+  initialArenaId,
+}: PlayerPortalProps = {}) {
   const [arenas, setArenas] = useState<ArenaItem[]>([]);
   const [selectedArena, setSelectedArena] = useState<string>(() => {
+    if (initialArenaId) return initialArenaId;
     if (typeof window !== 'undefined') {
       return new URLSearchParams(window.location.search).get('arenaId') || '';
     }
@@ -60,6 +67,7 @@ export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps = 
   });
   const [courts, setCourts] = useState<CourtItem[]>([]);
   const [selectedCourt, setSelectedCourt] = useState<string>(() => {
+    if (initialCourtParam) return initialCourtParam;
     if (typeof window !== 'undefined') {
       return new URLSearchParams(window.location.search).get('courtId') || 'all';
     }
@@ -99,7 +107,7 @@ export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps = 
     };
   }, []);
 
-  // Carrega as quadras da arena selecionada
+  // Carrega as quadras da arena selecionada e ajusta slug inicial se fornecido
   useEffect(() => {
     if (!selectedArena) return;
     let isMounted = true;
@@ -108,7 +116,16 @@ export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps = 
       .then((res) => (res.ok ? res.json() : []))
       .then((data: CourtItem[]) => {
         if (isMounted) {
-          setCourts(Array.isArray(data) ? data : []);
+          const courtList = Array.isArray(data) ? data : [];
+          setCourts(courtList);
+          if (initialCourtParam) {
+            const match = courtList.find(
+              (c) => c.identifier === initialCourtParam || c.id === initialCourtParam
+            );
+            if (match) {
+              setSelectedCourt(match.id);
+            }
+          }
         }
       })
       .catch(() => {
@@ -118,7 +135,7 @@ export default function PlayerPortal({ onBackToDashboard }: PlayerPortalProps = 
     return () => {
       isMounted = false;
     };
-  }, [selectedArena]);
+  }, [selectedArena, initialCourtParam]);
 
   // Carrega os vídeos com base nos filtros (sincronização imediata)
   useEffect(() => {
