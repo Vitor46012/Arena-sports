@@ -44,7 +44,7 @@ export interface ArenaStateHook {
 
 const INITIAL_MATCH_STATE: MatchState = {
   id: '',
-  courtId: '1',
+  courtId: 'quadra-1',
   courtName: 'Quadra 1 (Society Principal)',
   homeTeam: 'PARANAGUÁ FC',
   awayTeam: 'LITORAL UNITED',
@@ -239,6 +239,9 @@ export function useArenaState(nodeId: string = 'node-pr-112'): ArenaStateHook {
 
   const setActiveCourt = useCallback((courtId: string) => {
     const courtNames: Record<string, string> = {
+      'quadra-1': 'Quadra 1 (Society Principal)',
+      'quadra-2': 'Quadra 2 (Futebol 7 Sintética)',
+      'quadra-3': 'Quadra 3 (Beach Tennis)',
       '1': 'Quadra 1 (Society Principal)',
       '2': 'Quadra 2 (Futebol 7 Sintética)',
       '3': 'Quadra 3 (Beach Tennis)',

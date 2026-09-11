@@ -47,9 +47,9 @@ const SCENES_LIST = [
 ];
 
 const COURTS_METADATA = [
-  { id: '1', name: 'Quadra 1 (Society Principal)' },
-  { id: '2', name: 'Quadra 2 (Futebol 7 Sintética)' },
-  { id: '3', name: 'Quadra 3 (Beach Tennis)' },
+  { id: 'quadra-1', name: 'Quadra 1 (Society Principal)' },
+  { id: 'quadra-2', name: 'Quadra 2 (Futebol 7 Sintética)' },
+  { id: 'quadra-3', name: 'Quadra 3 (Beach Tennis)' },
 ];
 
 export default function TenantDashboardView({ features = {}, role = "tenant" }: { features?: Record<string, boolean>; role?: string }) {
@@ -69,7 +69,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
   } = arenaState;
 
   const [activeModalScene, setActiveModalScene] = useState<string | null>(null);
-  const [isSimulatingUpload, setIsSimulatingUpload] = useState(false);
+  const [isRecordingManual, setIsRecordingManual] = useState(false);
   const [toastMessage, setToastMessage] = useState<{
     text: string;
     type: 'success' | 'info' | 'warn';
@@ -145,52 +145,37 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
     }
   };
 
-  const simulateEdgeUpload = async () => {
-    setIsSimulatingUpload(true);
+  const handleTriggerRecord = async () => {
+    if (isRecordingManual) return;
+    setIsRecordingManual(true);
+
+    // Obtém o courtId da aba ativa ('quadra-1', 'quadra-2' ou 'quadra-3')
+    const rawCourt = matchState.courtId || 'quadra-1';
+    const activeCourtId = rawCourt.startsWith('quadra-') ? rawCourt : `quadra-${rawCourt}`;
+
     try {
-      let arenaId = 'arena-pr-01';
-      try {
-        const arenasRes = await fetch('/api/arenas');
-        if (arenasRes.ok) {
-          const arenasData = await arenasRes.json();
-          if (Array.isArray(arenasData) && arenasData.length > 0) {
-            arenaId = arenasData[0].id;
-          }
-        }
-      } catch (fetchErr) {
-        console.warn('Falha ao buscar arenas:', String(fetchErr));
-      }
-
-      const payload = {
-        machineName: 'LANCE_TESTE_' + Date.now(),
-        s3Key: 'replays/test-video.mp4',
-        s3Url: 'https://example.com/test-video.mp4',
-        duration: '00:30',
-        sizeMb: 12.5,
-        arenaId,
-        nodeToken: 'token-secreto-123',
-      };
-
-      const res = await fetch('/api/webhooks/video', {
+      const res = await fetch('/api/trigger-record', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Accept: 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ courtId: activeCourtId }),
       });
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `Erro HTTP ${res.status}`);
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || data.success === false) {
+        throw new Error(data.error || `Erro HTTP ${res.status}`);
       }
 
-      showToast('Lance gravado com sucesso!', 'success');
+      showToast('Sinal de gravação enviado!', 'success');
     } catch (err: unknown) {
-      console.warn('Aviso ao registrar lance:', err instanceof Error ? err.message : typeof err === "object" ? "Object error" : String(err));
-      const message = err instanceof Error ? err.message : 'Erro ao processar';
-      showToast(`Erro ao gravar lance: ${message}`, 'warn');
+      console.warn('Aviso ao disparar gravação manual:', err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : 'Falha ao enviar sinal de gravação.';
+      showToast(message, 'warn');
     } finally {
-      setIsSimulatingUpload(false);
+      setIsRecordingManual(false);
     }
   };
 
@@ -296,7 +281,10 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
       {/* Court Selection Tabs */}
       <div className="p-2 bg-slate-900 rounded-xl border border-slate-800 flex flex-col sm:flex-row gap-2">
         {COURTS_METADATA.map((c) => {
-          const isSelected = matchState.courtId === c.id;
+          const currentCourtKey = (matchState.courtId || '').startsWith('quadra-')
+            ? matchState.courtId
+            : `quadra-${matchState.courtId}`;
+          const isSelected = currentCourtKey === c.id || matchState.courtId === c.id;
           return (
             <button
               key={c.id}
@@ -694,18 +682,18 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
           <button
             type="button"
             id="btnManualClip"
-            onClick={simulateEdgeUpload}
-            disabled={!isOnline || isSimulatingUpload}
+            onClick={handleTriggerRecord}
+            disabled={!isOnline || isRecordingManual}
             className="w-full h-full min-h-[56px] py-3.5 px-4 bg-slate-800 hover:bg-slate-700 border border-orange-500 text-orange-500 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-black/20"
           >
-            {isSimulatingUpload ? (
+            {isRecordingManual ? (
               <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
             ) : (
               <Video className="w-5 h-5" />
             )}
             <span className="whitespace-nowrap">
-              {isSimulatingUpload
-                ? 'GRAVANDO LANCE...'
+              {isRecordingManual
+                ? 'ENVIANDO SINAL...'
                 : 'GRAVAR LANCE MANUAL (30S)'}
             </span>
           </button>

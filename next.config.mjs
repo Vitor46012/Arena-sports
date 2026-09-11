@@ -17,6 +17,7 @@ const nextConfig = (phase) => {
       '@opentelemetry/core',
       '@aws-sdk/client-s3',
       'pg',
+      'mqtt',
     ],
     images: {
       remotePatterns: [
