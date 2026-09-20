@@ -10,6 +10,7 @@ interface WebhookPayload {
   duration?: string;
   sizeMb?: number;
   nodeToken: string;
+  court?: string;
   courtId?: string;
   courtIdentifier?: string;
 }
@@ -24,6 +25,7 @@ export async function POST(req: NextRequest) {
       duration = "00:30",
       sizeMb,
       nodeToken,
+      court,
       courtId,
       courtIdentifier,
     } = body;
@@ -70,7 +72,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Identificar a quadra vinculada ao lance
-    const targetCourtKey = courtId || courtIdentifier;
+    const rawCourt = court || courtId || courtIdentifier;
+    const targetCourtKey = rawCourt ? String(rawCourt).trim() : undefined;
     let targetCourt = null;
 
     if (targetCourtKey) {
@@ -80,9 +83,37 @@ export async function POST(req: NextRequest) {
           OR: [
             { id: targetCourtKey },
             { identifier: targetCourtKey },
+            { identifier: targetCourtKey.toLowerCase() },
           ],
         },
       });
+
+      // Se a quadra informada pelo hardware ainda não estiver cadastrada, cria automaticamente
+      if (!targetCourt) {
+        const numOnly = targetCourtKey.replace(/\D/g, '') || '1';
+        const formattedName = `Quadra ${numOnly}`;
+        const identifier = targetCourtKey.toLowerCase().startsWith('quadra-') 
+          ? targetCourtKey.toLowerCase() 
+          : `quadra-${numOnly}`;
+
+        try {
+          targetCourt = await prisma.court.create({
+            data: {
+              name: formattedName,
+              identifier,
+              arenaId: arena.id,
+              active: true,
+            },
+          });
+        } catch {
+          targetCourt = await prisma.court.findFirst({
+            where: {
+              arenaId: arena.id,
+              identifier,
+            },
+          });
+        }
+      }
     }
 
     // Fallback: Primeira quadra ativa da arena
@@ -96,11 +127,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Se a arena ainda não tiver quadra cadastrada, cria uma padrão automaticamente
+    // Se a arena ainda não tiver nenhuma quadra cadastrada, cria uma padrão automaticamente
     if (!targetCourt) {
       targetCourt = await prisma.court.create({
         data: {
-          name: "Quadra 1 - Principal",
+          name: "Quadra 1",
           identifier: "quadra-1",
           arenaId: arena.id,
           active: true,

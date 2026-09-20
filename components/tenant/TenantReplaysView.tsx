@@ -27,10 +27,59 @@ export interface B2BVideoClipItem {
   triggerType?: string | null;
   createdAt: string;
   arenaId: string;
+  courtId?: string | null;
+  courtName?: string | null;
+  courtIdentifier?: string | null;
+  court?: {
+    id: string;
+    name: string;
+    identifier: string;
+  } | string | null;
   arena?: {
     id: string;
     name: string;
   };
+}
+
+/**
+ * Converte segundos em formato mm:ss (ex: 22 -> 00:22, 26 -> 00:26, 65 -> 01:05)
+ */
+export function formatDurationMmSs(seconds: number): string {
+  if (isNaN(seconds) || seconds <= 0 || !isFinite(seconds)) return '--:--';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+/**
+ * Formata identificador de quadra para exibição amigável na interface.
+ * Exemplo: se receber "quadra-1", exibe "Quadra 1". Se receber "quadra-3", exibe "Quadra 3".
+ */
+export function formatCourtName(
+  courtInput?: string | { name?: string; identifier?: string } | null
+): string {
+  if (!courtInput) return 'Quadra 1';
+
+  const raw = typeof courtInput === 'object'
+    ? (courtInput.identifier || courtInput.name || '')
+    : courtInput;
+
+  if (!raw || typeof raw !== 'string') return 'Quadra 1';
+
+  const trimmed = raw.trim();
+
+  // Exemplo: "quadra-1" -> "Quadra 1", "quadra-3" -> "Quadra 3"
+  const match = trimmed.match(/quadra[-_\s]*(\d+)/i);
+  if (match) {
+    return `Quadra ${match[1]}`;
+  }
+
+  // Se vier apenas dígitos numéricos como "1", "2", "3"
+  if (/^\d+$/.test(trimmed)) {
+    return `Quadra ${trimmed}`;
+  }
+
+  return trimmed;
 }
 
 /**
@@ -81,7 +130,17 @@ export default function TenantReplaysView() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [selectedVideoUrl, setSelectedVideoUrl] = useState<string | null>(null);
   const [selectedVideoName, setSelectedVideoName] = useState<string>('');
+  const [selectedVideoCourt, setSelectedVideoCourt] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [videoDurations, setVideoDurations] = useState<Record<string, number>>({});
+
+  const handleLoadedMetadata = (videoId: string, durationSec: number) => {
+    if (!durationSec || isNaN(durationSec) || !isFinite(durationSec) || durationSec <= 0) return;
+    setVideoDurations((prev) => {
+      if (prev[videoId] === durationSec) return prev;
+      return { ...prev, [videoId]: durationSec };
+    });
+  };
 
   const showToast = (text: string) => {
     setToastMessage(text);
@@ -134,8 +193,10 @@ export default function TenantReplaysView() {
   const handleOpenPlayer = (v: B2BVideoClipItem) => {
     const url = getVideoPlaybackUrl(v);
     const displayTitle = formatReplayTitle(v.machineName, v.createdAt);
+    const courtRaw = v.court || v.courtIdentifier || v.courtName || v.courtId;
     setSelectedVideoUrl(url);
     setSelectedVideoName(displayTitle);
+    setSelectedVideoCourt(formatCourtName(courtRaw));
   };
 
   const handleDownload = (v: B2BVideoClipItem) => {
@@ -250,6 +311,22 @@ export default function TenantReplaysView() {
                 })
               : '19:45:00';
 
+            const courtRaw = rep.court || rep.courtIdentifier || rep.courtName || rep.courtId;
+            const formattedCourt = formatCourtName(courtRaw);
+
+            // Obtém a duração real em segundos do estado local (extraída via onLoadedMetadata)
+            const realDurationSec = videoDurations[rep.id];
+            let displayDuration = '--:--';
+            if (realDurationSec !== undefined && realDurationSec > 0) {
+              displayDuration = formatDurationMmSs(realDurationSec);
+            } else if (rep.duration && rep.duration !== '30s' && rep.duration !== '00:30') {
+              if (/^\d+$/.test(rep.duration.trim())) {
+                displayDuration = formatDurationMmSs(parseInt(rep.duration.trim(), 10));
+              } else if (/^\d{2}:\d{2}$/.test(rep.duration.trim())) {
+                displayDuration = rep.duration.trim();
+              }
+            }
+
             return (
               <div
                 key={rep.id}
@@ -261,7 +338,26 @@ export default function TenantReplaysView() {
                   onClick={() => handleOpenPlayer(rep)}
                   className="relative w-full aspect-video bg-slate-800 overflow-hidden cursor-pointer group/thumb flex items-center justify-center"
                 >
-                  {rep.thumbnailUrl ? (
+                  {isGoogleDrive ? (
+                    <iframe
+                      src={`https://drive.google.com/file/d/${rep.driveFileId}/preview`}
+                      className="w-full h-full border-0 pointer-events-none opacity-85 group-hover/thumb:opacity-100 transition-opacity"
+                      title={displayTitle}
+                      loading="lazy"
+                    />
+                  ) : rep.s3Url ? (
+                    <video
+                      src={`${rep.s3Url}#t=0.5`}
+                      poster={rep.thumbnailUrl || undefined}
+                      preload="metadata"
+                      muted
+                      playsInline
+                      onLoadedMetadata={(e) => {
+                        handleLoadedMetadata(rep.id, e.currentTarget.duration);
+                      }}
+                      className="w-full h-full object-cover opacity-85 group-hover/thumb:opacity-100 transition-opacity"
+                    />
+                  ) : rep.thumbnailUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={rep.thumbnailUrl}
@@ -271,29 +367,22 @@ export default function TenantReplaysView() {
                         (e.currentTarget as HTMLElement).style.display = 'none';
                       }}
                     />
-                  ) : isGoogleDrive ? (
-                    <iframe
-                      src={`https://drive.google.com/file/d/${rep.driveFileId}/preview`}
-                      className="w-full h-full border-0 pointer-events-none opacity-85 group-hover/thumb:opacity-100 transition-opacity"
-                      title={displayTitle}
-                      loading="lazy"
-                    />
-                  ) : rep.s3Url ? (
-                    <video
-                      src={rep.s3Url}
-                      preload="metadata"
-                      className="w-full h-full object-cover opacity-85 group-hover/thumb:opacity-100 transition-opacity"
-                    />
                   ) : (
                     <div className="w-full h-full bg-slate-800 flex items-center justify-center">
                       <Video className="w-8 h-8 text-slate-500" />
                     </div>
                   )}
 
-                  {/* Duration Tag */}
-                  <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/80 backdrop-blur-sm border border-slate-700 px-2 py-0.5 rounded text-white font-mono text-[10px] font-bold z-10">
+                  {/* Real Dynamic Duration Tag */}
+                  <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/80 backdrop-blur-sm border border-slate-700 px-2 py-0.5 rounded text-white font-mono text-[10px] font-bold z-10 shadow-sm">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                    <span>{rep.duration || '00:30'}</span>
+                    <span>{displayDuration}</span>
+                  </div>
+
+                  {/* Dynamic Court Badge */}
+                  <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-slate-950/85 backdrop-blur-sm border border-slate-700 px-2 py-0.5 rounded text-orange-400 font-mono text-[10px] font-bold z-10 shadow-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                    <span>{formattedCourt}</span>
                   </div>
 
                   {/* Time of recording */}
@@ -312,9 +401,12 @@ export default function TenantReplaysView() {
                 {/* Card Body */}
                 <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-slate-100 tracking-wide truncate max-w-[200px]" title={displayTitle}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-xs font-bold text-slate-100 tracking-wide truncate" title={displayTitle}>
                         {displayTitle}
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono text-[10px] font-bold shrink-0">
+                        {formattedCourt}
                       </span>
                     </div>
 
@@ -374,6 +466,11 @@ export default function TenantReplaysView() {
               <div className="flex items-center gap-2">
                 <PlayCircle className="w-4 h-4 text-orange-500" />
                 <h3 className="font-mono text-sm font-bold text-slate-100">{selectedVideoName}</h3>
+                {selectedVideoCourt && (
+                  <span className="px-2 py-0.5 rounded bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono text-[10px] font-bold">
+                    {selectedVideoCourt}
+                  </span>
+                )}
               </div>
               <button
                 type="button"

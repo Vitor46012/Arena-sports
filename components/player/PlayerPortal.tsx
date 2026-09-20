@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Monitor, VideoOff, History, Calendar, Play, Video } from 'lucide-react';
 import VideoPlayerModal, { VideoData } from './VideoPlayerModal';
 import SportsReviewLogo from '@/components/common/SportsReviewLogo';
-import { formatReplayTitle } from '@/components/tenant/TenantReplaysView';
+import { formatReplayTitle, formatCourtName, formatDurationMmSs } from '@/components/tenant/TenantReplaysView';
 
 export interface VideoClipItem {
   id: string;
@@ -78,6 +78,15 @@ export default function PlayerPortal({
   const [clips, setClips] = useState<VideoClipItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [activeVideo, setActiveVideo] = useState<VideoData | null>(null);
+  const [videoDurations, setVideoDurations] = useState<Record<string, number>>({});
+
+  const handleVideoLoadedMetadata = (clipId: string, durationSec: number) => {
+    if (!durationSec || isNaN(durationSec) || !isFinite(durationSec) || durationSec <= 0) return;
+    setVideoDurations((prev) => {
+      if (prev[clipId] === durationSec) return prev;
+      return { ...prev, [clipId]: durationSec };
+    });
+  };
 
   // Carrega arenas disponíveis com resiliência
   useEffect(() => {
@@ -184,7 +193,19 @@ export default function PlayerPortal({
     });
 
     const arenaName = arenas.find((a) => a.id === clip.arenaId)?.name || 'Arena Society';
-    const courtLabel = clip.courtName || 'Quadra Principal';
+    const courtLabel = formatCourtName(clip.courtName || clip.courtIdentifier || clip.courtId);
+
+    const realDurationSec = videoDurations[clip.id];
+    let finalDuration = '--:--';
+    if (realDurationSec !== undefined && realDurationSec > 0) {
+      finalDuration = formatDurationMmSs(realDurationSec);
+    } else if (clip.duration && clip.duration !== '30s' && clip.duration !== '00:30') {
+      if (/^\d+$/.test(clip.duration.trim())) {
+        finalDuration = formatDurationMmSs(parseInt(clip.duration.trim(), 10));
+      } else if (/^\d{2}:\d{2}$/.test(clip.duration.trim())) {
+        finalDuration = clip.duration.trim();
+      }
+    }
 
     setActiveVideo({
       id: clip.id,
@@ -193,7 +214,7 @@ export default function PlayerPortal({
       arenaId: clip.arenaId,
       timestamp: `${courtLabel} • ${formattedTime}`,
       streamUrl: clip.streamUrl,
-      duration: clip.duration,
+      duration: finalDuration,
       sizeMb: clip.sizeMb,
       createdAt: clip.createdAt,
     });
@@ -346,62 +367,86 @@ export default function PlayerPortal({
             </div>
           ) : (
             <div className="space-y-4">
-              {clips.map((clip) => (
-                <div
-                  key={clip.id}
-                  className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-md group hover:border-slate-700 transition-all"
-                >
+              {clips.map((clip) => {
+                const formattedCourt = formatCourtName(clip.courtName || clip.courtIdentifier || clip.courtId);
+                const realDurationSec = videoDurations[clip.id];
+                let displayDuration = '--:--';
+                if (realDurationSec !== undefined && realDurationSec > 0) {
+                  displayDuration = formatDurationMmSs(realDurationSec);
+                } else if (clip.duration && clip.duration !== '30s' && clip.duration !== '00:30') {
+                  if (/^\d+$/.test(clip.duration.trim())) {
+                    displayDuration = formatDurationMmSs(parseInt(clip.duration.trim(), 10));
+                  } else if (/^\d{2}:\d{2}$/.test(clip.duration.trim())) {
+                    displayDuration = clip.duration.trim();
+                  }
+                }
+
+                return (
                   <div
-                    onClick={() => handleOpenModal(clip)}
-                    className="relative aspect-video bg-black cursor-pointer overflow-hidden"
+                    key={clip.id}
+                    className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-md group hover:border-slate-700 transition-all"
                   >
-                    <video
-                      src={`${clip.streamUrl}#t=0.5`}
-                      preload="metadata"
-                      muted
-                      playsInline
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-
-                    <div className="absolute top-2.5 right-2.5 bg-slate-950/80 backdrop-blur-sm border border-slate-700 px-2 py-0.5 rounded text-[10px] font-mono text-white">
-                      {clip.duration}
-                    </div>
-
-                    <div className="absolute bottom-2.5 left-2.5 bg-slate-950/80 backdrop-blur-sm border border-slate-700 px-2 py-0.5 rounded text-[10px] font-mono text-slate-300">
-                      {new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date(clip.createdAt))}
-                    </div>
-
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-transparent transition-colors">
-                      <div className="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                        <Play className="w-5 h-5 ml-0.5 fill-current" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-mono text-xs font-bold text-slate-100">{formatReplayTitle(clip.machineName, clip.createdAt)}</h4>
-                        {clip.courtName && (
-                          <span className="px-1.5 py-0.5 rounded bg-orange-500/10 border border-orange-500/20 text-orange-400 font-mono text-[9px] font-bold">
-                            {clip.courtName}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[10px] text-emerald-400 font-mono">Disponível em 1080p</span>
-                    </div>
-
-                    <button
-                      type="button"
+                    <div
                       onClick={() => handleOpenModal(clip)}
-                      className="px-4 py-2.5 min-h-[44px] rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-orange-500/20"
+                      className="relative aspect-video bg-black cursor-pointer overflow-hidden"
                     >
-                      <Play className="w-4 h-4 fill-current" />
-                      <span>Assistir</span>
-                    </button>
+                      <video
+                        src={`${clip.streamUrl}#t=0.5`}
+                        preload="metadata"
+                        muted
+                        playsInline
+                        onLoadedMetadata={(e) => {
+                          handleVideoLoadedMetadata(clip.id, e.currentTarget.duration);
+                        }}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+
+                      {/* Real Dynamic Duration Badge */}
+                      <div className="absolute top-2.5 right-2.5 bg-slate-950/80 backdrop-blur-sm border border-slate-700 px-2 py-0.5 rounded text-[10px] font-mono text-white flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                        <span>{displayDuration}</span>
+                      </div>
+
+                      {/* Dynamic Court Badge */}
+                      <div className="absolute top-2.5 left-2.5 bg-slate-950/80 backdrop-blur-sm border border-slate-700 px-2 py-0.5 rounded text-[10px] font-mono text-orange-400 font-bold flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                        <span>{formattedCourt}</span>
+                      </div>
+
+                      <div className="absolute bottom-2.5 left-2.5 bg-slate-950/80 backdrop-blur-sm border border-slate-700 px-2 py-0.5 rounded text-[10px] font-mono text-slate-300">
+                        {new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date(clip.createdAt))}
+                      </div>
+
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-transparent transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                          <Play className="w-5 h-5 ml-0.5 fill-current" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-mono text-xs font-bold text-slate-100">{formatReplayTitle(clip.machineName, clip.createdAt)}</h4>
+                          <span className="px-1.5 py-0.5 rounded bg-orange-500/10 border border-orange-500/20 text-orange-400 font-mono text-[9px] font-bold">
+                            {formattedCourt}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-emerald-400 font-mono">Disponível em 1080p</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenModal(clip)}
+                        className="px-4 py-2.5 min-h-[44px] rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-orange-500/20"
+                      >
+                        <Play className="w-4 h-4 fill-current" />
+                        <span>Assistir</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </main>
