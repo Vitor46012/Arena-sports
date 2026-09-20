@@ -65,21 +65,19 @@ export async function GET(req: NextRequest) {
       s3Url: clip.s3Url,
       streamUrl: clip.s3Url,
       downloadUrl: clip.s3Url,
-      duration: clip.duration || "",
+      duration: clip.duration || "00:30",
       sizeMb: clip.sizeMb || 0,
       arenaId: clip.arenaId,
       courtId: clip.courtId,
-      court: clip.court ? {
-        id: clip.court.id,
-        name: clip.court.name,
-        identifier: clip.court.identifier,
-      } : clip.courtId ? {
-        id: clip.courtId,
-        name: `Quadra ${clip.courtId.replace(/\D/g, '') || clip.courtId}`,
-        identifier: clip.courtId.startsWith('quadra-') ? clip.courtId : `quadra-${clip.courtId}`,
-      } : null,
-      courtName: clip.court?.name || (clip.courtId ? `Quadra ${clip.courtId.replace(/\D/g, '') || clip.courtId}` : "Quadra 1"),
-      courtIdentifier: clip.court?.identifier || (clip.courtId?.startsWith("quadra-") ? clip.courtId : null),
+      court: clip.court
+        ? {
+            id: clip.court.id,
+            name: clip.court.name,
+            identifier: clip.court.identifier,
+          }
+        : null,
+      courtName: clip.court?.name || (clip.courtId ? `Quadra ${clip.courtId.replace(/\D/g, "") || clip.courtId}` : "Não Categorizado"),
+      courtIdentifier: clip.court?.identifier || null,
       status: clip.status,
       createdAt: clip.createdAt,
     }));
