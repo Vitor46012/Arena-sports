@@ -168,6 +168,8 @@ model VideoClip {
   resolution   String      @default("1920x1080")
   sizeMb       Float?
   triggerType  String?     @default("Botoeira ESP32") // "Botoeira ESP32", "Painel Web", etc.
+  triggerSource String?    // "web" ou "fisico"
+  origin       String?     // "web" ou "fisico"
   status       ClipStatus  @default(PROCESSING)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt

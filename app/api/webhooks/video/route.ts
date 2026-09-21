@@ -15,6 +15,10 @@ interface WebhookPayload {
   court?: string;
   courtId?: string;
   courtIdentifier?: string;
+  source?: string;
+  triggerSource?: string;
+  origin?: string;
+  triggerType?: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -32,6 +36,10 @@ export async function POST(req: NextRequest) {
       court,
       courtId,
       courtIdentifier,
+      source,
+      triggerSource,
+      origin,
+      triggerType,
     } = body;
 
     // 1. Validação básica: machineName é a chave primária única do replay
@@ -58,7 +66,6 @@ export async function POST(req: NextRequest) {
     let arena = null;
 
     if (resolvedToken) {
-      // Busca EdgeNode pelo token de segurança cadastrado
       const edgeNode = await prisma.edgeNode.findFirst({
         where: {
           OR: [
@@ -72,14 +79,13 @@ export async function POST(req: NextRequest) {
       arena = edgeNode?.arena || null;
 
       if (!arena) {
-        // Verifica se o token informado é diretamente o ID da Arena
         arena = await prisma.arena.findUnique({
           where: { id: resolvedToken },
         });
       }
     }
 
-    // Fallback de arena: Caso não haja token ou esteja em ambiente local/dev
+    // Fallback de arena para ambiente local/desenvolvimento
     if (!arena) {
       arena = await prisma.arena.findFirst({
         orderBy: { createdAt: "asc" },
@@ -93,18 +99,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Extração e Mapeamento Dinâmico de Quadra (Sem fallbacks estáticos ou arbitrários)
+    // 4. Lookup (Tradução) da Quadra dinamicamente recebida no payload (ex: "quadra-1")
     const rawCourt = court || courtId || courtIdentifier;
     let targetCourt = null;
 
     if (!rawCourt || typeof rawCourt !== "string" || !rawCourt.trim()) {
-      // Tratamento de Resiliência: O campo court não foi fornecido.
-      // NÃO vincular acidentalmente à quadra de outro locatário ou a uma quadra ativa arbitrária (ex: Quadra 2).
-      // Em vez disso, vincula estritamente à categoria "Não Categorizado" específica desta Arena.
-      console.warn(
-        `[WEBHOOK_VIDEO] Gravação '${cleanMachineName}' recebida sem identificador de quadra. Vinculando à categoria 'Não Categorizado' da Arena '${arena.name}'.`
-      );
-
+      // Caso venha vazio, busca ou cria a quadra "Não Categorizado" para evitar vincular incorretamente
       targetCourt = await prisma.court.findFirst({
         where: {
           arenaId: arena.id,
@@ -124,18 +124,14 @@ export async function POST(req: NextRequest) {
           });
         } catch {
           targetCourt = await prisma.court.findFirst({
-            where: {
-              arenaId: arena.id,
-              identifier: "nao-categorizado",
-            },
+            where: { arenaId: arena.id, identifier: "nao-categorizado" },
           });
         }
       }
     } else {
-      // Extração dinâmica do identificador fornecido pelo hardware/Node-RED
       const courtStr = rawCourt.trim();
 
-      // Normaliza o slug: ex: "quadra-3", "3", "Quadra 3" -> "quadra-3"
+      // Normalização inteligente do identificador da quadra
       const numMatch = courtStr.match(/\d+/);
       const normalizedIdentifier = courtStr.toLowerCase().startsWith("quadra-")
         ? courtStr.toLowerCase()
@@ -147,7 +143,7 @@ export async function POST(req: NextRequest) {
         ? `Quadra ${numMatch[0]}`
         : courtStr.charAt(0).toUpperCase() + courtStr.slice(1);
 
-      // Busca a quadra estritamente dentro da Arena correspondente
+      // Busca o ID real (CUID) da quadra no banco usando slug, identifier, id ou nome dentro da Arena
       targetCourt = await prisma.court.findFirst({
         where: {
           arenaId: arena.id,
@@ -162,7 +158,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Se a quadra dinâmica enviada pelo hardware ainda não existir na Arena, cria automaticamente
+      // Se a quadra informada ainda não estiver cadastrada, cria-a de forma graciosa para o tenant
       if (!targetCourt) {
         try {
           targetCourt = await prisma.court.create({
@@ -184,7 +180,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 5. URLs e Chaves do R2 / Storage
+    // 5. Salvamento Dinâmico da Origem (source: "web" ou "fisico")
+    const resolvedSource = source || triggerSource || origin || "fisico";
+    const resolvedTriggerType =
+      triggerType || (resolvedSource.toLowerCase() === "web" ? "Painel Web" : "Botoeira ESP32");
+
+    // 6. URLs e Chaves do Armazenamento R2
     const finalS3Key = s3Key || `replays/${cleanMachineName}.mp4`;
     const finalS3Url =
       s3Url ||
@@ -197,8 +198,7 @@ export async function POST(req: NextRequest) {
     const numericSizeMb =
       sizeMb !== undefined && sizeMb !== null ? Number(sizeMb) : undefined;
 
-    // 6. Persistência Dinâmica do Lance no Prisma (Upsert / Create / Update)
-    // courtId recebe exatamente o ID da quadra correspondente ou "Não Categorizado"
+    // 7. Persistência e Conexão de Chaves Estrangeiras (courtId real e origem dinâmica)
     const videoClip = await prisma.videoClip.upsert({
       where: { machineName: cleanMachineName },
       update: {
@@ -206,6 +206,9 @@ export async function POST(req: NextRequest) {
         s3Url: finalS3Url,
         duration: duration || "00:30",
         sizeMb: !isNaN(numericSizeMb!) ? numericSizeMb : undefined,
+        triggerSource: resolvedSource,
+        origin: resolvedSource,
+        triggerType: resolvedTriggerType,
         status: "UPLOADED",
         arenaId: arena.id,
         courtId: targetCourt?.id || null,
@@ -217,9 +220,12 @@ export async function POST(req: NextRequest) {
         s3Url: finalS3Url,
         duration: duration || "00:30",
         sizeMb: !isNaN(numericSizeMb!) ? numericSizeMb : undefined,
+        triggerSource: resolvedSource,
+        origin: resolvedSource,
+        triggerType: resolvedTriggerType,
+        status: "UPLOADED",
         arenaId: arena.id,
         courtId: targetCourt?.id || null,
-        status: "UPLOADED",
       },
       include: {
         court: {
@@ -241,7 +247,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: "Gravação sincronizada com sucesso e vinculada à quadra correta.",
+        message: "Webhook processado: Quadra traduzida e origem registrada com sucesso.",
         clip: videoClip,
         court: videoClip.court,
       },
