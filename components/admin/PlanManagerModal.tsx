@@ -471,7 +471,7 @@ export default function PlanManagerModal({
                   rows={2}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Ex: Câmera N100 inclusa com botão físico de replay"
+                  placeholder="Ex: Câmera inclusa com botão físico de replay"
                   className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-colors resize-none"
                 />
               </div>

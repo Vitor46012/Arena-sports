@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Sports Review',
-  description: 'SaaS B2B2C de automação de vídeo esportivo e gerenciamento Edge.',
+  description: 'Plataforma de automação de vídeo e replays esportivos para arenas.',
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {

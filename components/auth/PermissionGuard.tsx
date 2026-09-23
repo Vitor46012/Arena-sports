@@ -40,7 +40,7 @@ export default function PermissionGuard({
       </div>
       <h2 className="text-xl font-bold text-slate-200 font-['Sora']">Acesso Restrito</h2>
       <p className="text-slate-400 mt-2 text-sm max-w-md">
-        A permissão <strong>{permissionKey}</strong> não está habilitada no seu plano atual. Entre em contato com o NOC para solicitar o upgrade.
+        Este recurso não está habilitado no seu plano atual. Entre em contato com o suporte para solicitar o upgrade.
       </p>
     </div>
   );

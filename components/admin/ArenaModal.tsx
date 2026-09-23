@@ -166,7 +166,7 @@ export default function ArenaModal({
             </div>
             <div>
               <h3 className="font-['Sora'] font-bold text-sm text-slate-100">
-                {arena ? `Editar Arena: ${arena.name}` : 'Provisionar Nova Arena B2B'}
+                {arena ? `Editar Arena: ${arena.name}` : 'Cadastrar Nova Arena'}
               </h3>
               <p className="text-[11px] text-slate-400">
                 Configuração da central de processamento e conexões de câmeras.
@@ -210,7 +210,7 @@ export default function ArenaModal({
             }`}
           >
             <Cpu className="w-4 h-4" />
-            <span>2. Infra Edge (N100)</span>
+            <span>2. Computador da Quadra</span>
           </button>
 
           <button
@@ -340,14 +340,14 @@ export default function ArenaModal({
               <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg text-xs text-slate-400 flex items-center gap-2">
                 <Cpu className="w-5 h-5 text-orange-500" />
                 <span>
-                  O Mini PC N100 roda Ubuntu Server 24.04 com Docker Compose (OBS + Node-RED + Mosquitto).
+                  Computador local responsável pela gravação automática das câmeras e botoeiras.
                 </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-[11px] font-bold text-slate-300 block mb-1 uppercase tracking-wide">
-                    MAC Address (Interface ETH0)
+                    Identificador do Computador da Quadra
                   </label>
                   <input
                     type="text"
@@ -360,7 +360,7 @@ export default function ArenaModal({
 
                 <div>
                   <label className="text-[11px] font-bold text-slate-300 block mb-1 uppercase tracking-wide">
-                    IP Estático na LAN Local
+                    Endereço na Rede Local
                   </label>
                   <input
                     type="text"
@@ -465,7 +465,7 @@ export default function ArenaModal({
 
                       <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase block">
-                          IP do Módulo ESP32 (Botoeira)
+                          Endereço da Botoeira da Quadra
                         </label>
                         <input
                           type="text"

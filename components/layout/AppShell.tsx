@@ -45,10 +45,10 @@ export default function AppShell({
 
   // Itens primários para a barra de navegação inferior em smartphones
   const adminBottomTabs = [
-    { id: 'nodes', label: 'Nodes', icon: Server },
+    { id: 'nodes', label: 'Centrais', icon: Server },
     { id: 'billing', label: 'Faturas', icon: CreditCard },
-    { id: 'provision', label: 'Deploy', icon: Wrench },
-    { id: 'permissions', label: 'NOC', icon: ShieldCheck },
+    { id: 'provision', label: 'Cadastrar', icon: Wrench },
+    { id: 'permissions', label: 'Central', icon: ShieldCheck },
   ];
 
   const tenantBottomTabs = [

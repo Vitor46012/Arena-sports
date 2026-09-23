@@ -41,16 +41,16 @@ export interface SideNavBarProps {
 }
 
 export const ADMIN_NAV_ITEMS: NavItem[] = [
-  { id: 'nodes', label: 'Network Nodes', icon: Server },
+  { id: 'nodes', label: 'Computadores das Quadras', icon: Server },
   { id: 'billing', label: 'Faturamento & Consumo', icon: CreditCard },
-  { id: 'provision', label: 'Provisionar Infra', icon: Wrench },
-  { id: 'permissions', label: 'Permissões (NOC)', icon: ShieldCheck },
+  { id: 'provision', label: 'Cadastrar Unidade', icon: Wrench },
+  { id: 'permissions', label: 'Permissões da Central', icon: ShieldCheck },
 ];
 
 export const TENANT_NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Painel de Transmissão', icon: Video },
   { id: 'courts', label: 'Gestão de Quadras', icon: LayoutGrid },
-  { id: 'branding', label: 'Patrocinadores & OBS', icon: Tv },
+  { id: 'branding', label: 'Patrocinadores & Transmissão', icon: Tv },
   { id: 'qrcodes', label: 'Totens & QR Codes', icon: QrCode },
   { id: 'cameras', label: 'Câmeras ao Vivo', icon: Camera },
   { id: 'replays', label: 'Últimos Replays', icon: Film },

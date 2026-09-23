@@ -12,7 +12,8 @@ import {
   Cpu,
   RefreshCw,
   CloudUpload,
-  Trash2
+  Trash2,
+  Lock
 } from 'lucide-react';
 import { useArenaState } from '@/hooks/useArenaState';
 
@@ -75,11 +76,11 @@ export default function NodeDetailsModal({ isOpen, node, onClose, onDeleteArena 
 
   if (!isOpen || !node) return null;
 
-  const handleTriggerAction = (actionName: string) => {
-    setActionFeedback(`Comando "${actionName}" enviado para a central ${node.name || node.nodeId}`);
+  const handleTriggerAction = (actionKey: string, displayLabel: string) => {
+    setActionFeedback(`Comando "${displayLabel}" enviado para a central ${node.name || node.nodeId}`);
     setLogs((prev) => [
       ...prev,
-      `[CMD_DISPATCH] Comando disparado para "${node.name || node.nodeId}" payload={"action":"${actionName}"}`,
+      `[CMD_DISPATCH] Comando disparado para "${node.name || node.nodeId}" payload={"action":"${actionKey}"}`,
     ]);
     setTimeout(() => {
       setActionFeedback(null);
@@ -227,7 +228,7 @@ export default function NodeDetailsModal({ isOpen, node, onClose, onDeleteArena 
               <div className="space-y-3 p-4 bg-slate-950/60 rounded-lg border border-slate-800">
                 <div>
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                    IP Local do Mini PC (N100)
+                    Endereço na Rede Local
                   </label>
                   <input
                     type="text"
@@ -239,7 +240,7 @@ export default function NodeDetailsModal({ isOpen, node, onClose, onDeleteArena 
 
                 <div>
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                    Porta Ingest SRT (OBS Studio)
+                    Porta de Recepção da Câmera
                   </label>
                   <input
                     type="number"
@@ -264,7 +265,7 @@ export default function NodeDetailsModal({ isOpen, node, onClose, onDeleteArena 
 
                 <button
                   type="button"
-                  onClick={() => handleTriggerAction('Salvar Parâmetros de Rede')}
+                  onClick={() => handleTriggerAction('SAVE_NETWORK_SETTINGS', 'Salvar Parâmetros de Rede')}
                   className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors mt-2"
                 >
                   Salvar e Reiniciar Conexão
@@ -281,69 +282,81 @@ export default function NodeDetailsModal({ isOpen, node, onClose, onDeleteArena 
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleTriggerAction('Reiniciar Container OBS Studio')}
-                  className="p-3.5 bg-slate-950/60 border border-slate-800 hover:border-orange-500/50 hover:bg-orange-500/5 rounded-lg text-left transition-all group cursor-pointer"
-                >
-                  <div className="w-8 h-8 rounded bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 group-hover:text-orange-500 mb-2">
-                    <RotateCcw className="w-4 h-4" />
+                {/* Hardware Remote Actions (Fase Futura - Recurso em Desenvolvimento) */}
+                <div className="col-span-1 sm:col-span-2 relative">
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-900/50 rounded-lg backdrop-blur-[1px] pointer-events-auto cursor-not-allowed">
+                    <div className="bg-slate-950 px-3 py-1.5 rounded-md border border-slate-800 flex items-center gap-2 shadow-xl">
+                      <Lock className="w-4 h-4 text-orange-500" />
+                      <span className="text-[10px] font-bold text-slate-300">Recurso em Desenvolvimento</span>
+                    </div>
                   </div>
-                  <h4 className="text-xs font-bold text-slate-200 group-hover:text-orange-400">
-                    Reiniciar OBS Studio
-                  </h4>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Reinicia o daemon Docker sem descarregar o SO.
-                  </p>
-                </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleTriggerAction('Limpar Buffer de Replays')}
-                  className="p-3.5 bg-slate-950/60 border border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-500/5 rounded-lg text-left transition-all group cursor-pointer"
-                >
-                  <div className="w-8 h-8 rounded bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 group-hover:text-emerald-500 mb-2">
-                    <Cpu className="w-4 h-4" />
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-200 group-hover:text-emerald-400">
-                    Limpar Buffer RAM
-                  </h4>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Esvazia a partição temporária de replays.
-                  </p>
-                </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 opacity-50 cursor-not-allowed pointer-events-none">
+                    <button
+                      type="button"
+                      disabled
+                      className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-lg text-left"
+                    >
+                      <div className="w-8 h-8 rounded bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 mb-2">
+                        <RotateCcw className="w-4 h-4" />
+                      </div>
+                      <h4 className="text-xs font-bold text-slate-200">
+                        Reiniciar Sistema de Câmeras
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Reinicia o serviço de gravação de vídeo local.
+                      </p>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleTriggerAction('Recarregar Fluxos Node-RED')}
-                  className="p-3.5 bg-slate-950/60 border border-slate-800 hover:border-orange-500/50 hover:bg-orange-500/5 rounded-lg text-left transition-all group cursor-pointer"
-                >
-                  <div className="w-8 h-8 rounded bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 group-hover:text-orange-500 mb-2">
-                    <RefreshCw className="w-4 h-4" />
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-200 group-hover:text-orange-400">
-                    Recarregar Node-RED
-                  </h4>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Sincroniza gatilhos dos botões físicos.
-                  </p>
-                </button>
+                    <button
+                      type="button"
+                      disabled
+                      className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-lg text-left"
+                    >
+                      <div className="w-8 h-8 rounded bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 mb-2">
+                        <Cpu className="w-4 h-4" />
+                      </div>
+                      <h4 className="text-xs font-bold text-slate-200">
+                        Limpar Fila Temporária
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Esvazia o armazenamento temporário de replays.
+                      </p>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleTriggerAction('Testar Conectividade Cloud')}
-                  className="p-3.5 bg-slate-950/60 border border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-500/5 rounded-lg text-left transition-all group cursor-pointer"
-                >
-                  <div className="w-8 h-8 rounded bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 group-hover:text-emerald-500 mb-2">
-                    <CloudUpload className="w-4 h-4" />
+                    <button
+                      type="button"
+                      disabled
+                      className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-lg text-left"
+                    >
+                      <div className="w-8 h-8 rounded bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 mb-2">
+                        <RefreshCw className="w-4 h-4" />
+                      </div>
+                      <h4 className="text-xs font-bold text-slate-200">
+                        Recarregar Botoeiras
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Sincroniza gatilhos dos botões físicos.
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled
+                      className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-lg text-left"
+                    >
+                      <div className="w-8 h-8 rounded bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 mb-2">
+                        <CloudUpload className="w-4 h-4" />
+                      </div>
+                      <h4 className="text-xs font-bold text-slate-200">
+                        Testar Conexão Cloud
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Valida upload e latência com os servidores centrais.
+                      </p>
+                    </button>
                   </div>
-                  <h4 className="text-xs font-bold text-slate-200 group-hover:text-emerald-400">
-                    Testar Conexão Cloud
-                  </h4>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Valida upload e latência com os servidores centrais.
-                  </p>
-                </button>
+                </div>
               </div>
 
               {node.arenaId && onDeleteArena && (
@@ -406,7 +419,7 @@ export default function NodeDetailsModal({ isOpen, node, onClose, onDeleteArena 
                         : 'bg-slate-800 text-slate-400 border-slate-700'
                     }`}
                   >
-                    {isLiveStreamingLogs ? 'PAUSAR STREAM' : 'RETOMAR STREAM'}
+                    {isLiveStreamingLogs ? 'PAUSAR TRANSMISSÃO' : 'RETOMAR TRANSMISSÃO'}
                   </button>
                   <button
                     type="button"

@@ -326,7 +326,7 @@ export default function OverlayBrandingView() {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs font-bold font-mono">
-              BROADCAST OBS
+              TRANSMISSÃO AO VIVO
             </span>
             <h2 className="text-xl font-bold font-['Sora'] text-white">
               Design da Live & Patrocinadores

@@ -240,7 +240,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
             Monitoramento de Centrais e Câmeras
           </h1>
           <p className="text-xs md:text-sm text-slate-400 mt-1">
-            Telemetria em tempo real das centrais de captura instaladas nas arenas.
+            Status em tempo real das centrais de captura instaladas nas arenas.
           </p>
         </div>
 
@@ -251,7 +251,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
             className="self-start md:self-auto px-4 py-2.5 bg-orange-500 hover:bg-orange-600 active:scale-[0.99] text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-orange-500/20 cursor-pointer"
           >
             <PlusCircle className="w-4 h-4" />
-            Provisionar Nova Central
+            Conectar Novo Computador
           </button>
         )}
       </div>
@@ -282,13 +282,13 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
 
         <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Atenção (Buffer)</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">Atenção (Fila de Gravação)</span>
             <AlertTriangle className="w-4 h-4 text-orange-500" />
           </div>
           <p className="text-2xl font-bold text-orange-400 font-['Sora'] mt-2">
             {isLoading ? '...' : totalWarning}
           </p>
-          <p className="text-[11px] text-orange-500/80 mt-0.5 font-mono">Buffer em Uso</p>
+          <p className="text-[11px] text-orange-500/80 mt-0.5 font-mono">Fila em Uso</p>
         </div>
 
         <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
@@ -312,7 +312,7 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar Identificador, MAC ou Arena..."
+            placeholder="Buscar por computador ou arena..."
             className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-8 py-2.5 text-xs text-slate-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all"
           />
           {searchTerm && (
@@ -351,12 +351,12 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3 text-slate-400">
               <RefreshCw className="w-7 h-7 text-orange-500 animate-spin" />
-              <p className="font-mono text-xs">Carregando nós Edge...</p>
+              <p className="font-mono text-xs">Carregando computadores das quadras...</p>
             </div>
           ) : filteredNodes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-slate-400 gap-2 text-center p-4">
               <SearchX className="w-7 h-7 text-slate-500" />
-              <p className="text-xs">Nenhum nó encontrado para os filtros.</p>
+              <p className="text-xs">Nenhum computador encontrado para os filtros.</p>
             </div>
           ) : (
             filteredNodes.map((node) => {
@@ -391,22 +391,14 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-[11px] font-mono bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
+                  <div className="flex items-center justify-between text-[11px] font-mono bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
                     <div>
                       <span className="text-slate-500 block text-[10px] uppercase">Identificador</span>
                       <span className="text-slate-200 font-semibold">{node.nodeId}</span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block text-[10px] uppercase">MAC</span>
-                      <span className="font-mono text-xs text-slate-300 bg-slate-800 px-2 py-0.5 rounded truncate block mt-0.5">{node.macAddress}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-[10px] uppercase">IP Local</span>
-                      <span className="text-slate-300">{node.localIp || '192.168.1.100'}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-[10px] uppercase">Porta SRT</span>
-                      <span className="text-slate-400">{node.srtPort}</span>
+                      <span className="text-slate-500 block text-[10px] uppercase">Status</span>
+                      <span className="text-slate-300 font-semibold">{node.status}</span>
                     </div>
                   </div>
 
@@ -454,17 +446,8 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
               <th className="py-3 px-4 text-[11px] font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap font-['Inter']">
                 Identificador
               </th>
-              <th className="py-3 px-4 text-[11px] font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap font-['Inter']">
-                MAC Address
-              </th>
               <th className="py-3 px-4 text-[11px] font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap text-center font-['Inter']">
                 Status
-              </th>
-              <th className="py-3 px-4 text-[11px] font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap text-right font-['Inter']">
-                IP Local
-              </th>
-              <th className="py-3 px-4 text-[11px] font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap text-right font-['Inter']">
-                Porta SRT
               </th>
               <th className="py-3 px-4 text-[11px] font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap text-right font-['Inter']">
                 Ações
@@ -474,19 +457,19 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
           <tbody className="text-xs text-slate-200 divide-y divide-slate-800/60">
             {isLoading ? (
               <tr>
-                <td colSpan={7} className="text-center py-12 text-slate-400">
+                <td colSpan={4} className="text-center py-12 text-slate-400">
                   <div className="flex flex-col items-center justify-center gap-3">
                     <RefreshCw className="w-8 h-8 text-orange-500 animate-spin" />
-                    <p className="font-mono text-xs text-slate-400">Carregando nós Edge do PostgreSQL...</p>
+                    <p className="font-mono text-xs text-slate-400">Carregando computadores das quadras...</p>
                   </div>
                 </td>
               </tr>
             ) : filteredNodes.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-10 text-slate-400">
+                <td colSpan={4} className="text-center py-10 text-slate-400">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <SearchX className="w-8 h-8 text-slate-500" />
-                    <p>Nenhum nó encontrado para os filtros selecionados.</p>
+                    <p>Nenhum computador encontrado para os filtros selecionados.</p>
                   </div>
                 </td>
               </tr>
@@ -517,13 +500,6 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
                       </span>
                     </td>
 
-                    {/* MAC Address */}
-                    <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span className="font-mono text-xs text-slate-300 bg-slate-800 px-2 py-1 rounded">
-                        {node.macAddress}
-                      </span>
-                    </td>
-
                     {/* Status */}
                     <td className="py-3.5 px-4 text-center whitespace-nowrap">
                       <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-950/80 border border-slate-800">
@@ -544,16 +520,6 @@ export default function NodesView({ onDeployClick }: NodesViewProps) {
                           {node.status}
                         </span>
                       </div>
-                    </td>
-
-                    {/* IP Local */}
-                    <td className="py-3.5 px-4 text-right font-mono whitespace-nowrap text-slate-300">
-                      {node.localIp || '192.168.1.100'}
-                    </td>
-
-                    {/* SRT Port */}
-                    <td className="py-3.5 px-4 text-right font-mono whitespace-nowrap text-slate-400">
-                      {node.srtPort}
                     </td>
 
                     {/* Actions */}

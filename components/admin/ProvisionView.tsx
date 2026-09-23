@@ -205,14 +205,14 @@ export default function ProvisionView() {
   const handleProvisionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!quickArenaName || !quickMacAddress) {
-      showToast('Preencha o Nome da Arena e o MAC Address do Edge N100.', 'error');
+      showToast('Preencha o Nome da Arena e o identificador do computador da quadra.', 'error');
       return;
     }
 
     // Validação estrita de formato MAC Address (ex: B8:27:EB:A4:91:0F)
     const macRegex = /^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i;
     if (!macRegex.test(quickMacAddress)) {
-      showToast('MAC Address inválido. Formato exigido: B8:27:EB:A4:91:0F (12 dígitos hexadecimais).', 'error');
+      showToast('Identificador de rede inválido. Formato exigido: B8:27:EB:A4:91:0F (12 dígitos hexadecimais).', 'error');
       return;
     }
 
@@ -376,7 +376,7 @@ export default function ProvisionView() {
 
             <div>
               <label className="text-[11px] font-bold text-slate-300 block mb-1 uppercase tracking-wide">
-                MAC Address (ETH0) *
+                Identificador do Computador *
               </label>
               <input
                 id="inputMacAddress"
@@ -392,7 +392,7 @@ export default function ProvisionView() {
 
             <div>
               <label className="text-[11px] font-bold text-slate-300 block mb-1 uppercase tracking-wide">
-                Porta SRT
+                Porta de Vídeo
               </label>
               <input
                 id="inputSrtPort"
@@ -421,7 +421,7 @@ export default function ProvisionView() {
               ) : (
                 <Save className="w-4 h-4" />
               )}
-              <span>{isSubmitting ? 'Provisionando...' : 'Salvar e Provisionar Unidade'}</span>
+              <span>{isSubmitting ? 'Salvando...' : 'Salvar e Conectar Computador'}</span>
             </button>
           </div>
         </form>
@@ -449,7 +449,6 @@ export default function ProvisionView() {
                 <th className="py-3 px-4">Plano</th>
                 <th className="py-3 px-4 text-center">Quadras</th>
                 <th className="py-3 px-4 text-center">Câmeras Ativas</th>
-                <th className="py-3 px-4 font-mono">Endereço MAC / IP</th>
                 <th className="py-3 px-4 text-center">Status</th>
                 <th className="py-3 px-4 text-right">Ações</th>
               </tr>
@@ -457,7 +456,7 @@ export default function ProvisionView() {
             <tbody className="divide-y divide-slate-800/60">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-slate-400">
+                  <td colSpan={6} className="text-center py-12 text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-3">
                       <RefreshCw className="w-7 h-7 text-orange-500 animate-spin" />
                       <p className="font-mono text-xs text-slate-400">Carregando dados da infraestrutura...</p>
@@ -466,8 +465,8 @@ export default function ProvisionView() {
                 </tr>
               ) : arenas.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-10 text-slate-400">
-                    Nenhuma arena provisionada ainda no banco de dados.
+                  <td colSpan={6} className="text-center py-10 text-slate-400">
+                    Nenhuma arena cadastrada ainda.
                   </td>
                 </tr>
               ) : (
@@ -490,10 +489,6 @@ export default function ProvisionView() {
                       <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-mono text-[11px]">
                         {a.cameras.length} feeds
                       </span>
-                    </td>
-                    <td className="py-3.5 px-4 font-mono text-[11px]">
-                      <div className="text-slate-300">{a.macAddress}</div>
-                      <div className="text-slate-500">{a.ipLan}</div>
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">

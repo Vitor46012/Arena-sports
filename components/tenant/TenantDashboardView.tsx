@@ -558,7 +558,7 @@ export default function TenantDashboardView({ features = {}, role = "tenant" }: 
                 <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-900/40 rounded-lg backdrop-blur-[1px]">
                   <div className="bg-slate-950 px-3 py-1.5 rounded-md border border-slate-800 flex items-center gap-2 shadow-xl">
                     <Lock className="w-4 h-4 text-orange-500" />
-                    <span className="text-[10px] font-bold text-slate-300">Apenas NOC</span>
+                    <span className="text-[10px] font-bold text-slate-300">Apenas Administrador</span>
                   </div>
                 </div>
                 <div>

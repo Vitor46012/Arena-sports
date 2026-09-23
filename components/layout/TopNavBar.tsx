@@ -119,7 +119,7 @@ export default function TopNavBar({
           </div>
           <div className="hidden lg:block text-left">
             <p className="text-xs font-semibold text-slate-200 leading-tight">
-              {role === 'admin' ? 'NOC Central' : 'Mesa Paranaguá'}
+              {role === 'admin' ? 'Central de Controle' : 'Mesa Paranaguá'}
             </p>
             <p className="text-[10px] text-slate-400 leading-tight capitalize">
               {role}

@@ -236,7 +236,7 @@ export default function PlayerPortal({
                 type="button"
                 id="btnBackToAdmin"
                 onClick={onBackToDashboard}
-                title="Voltar para a Mesa de Operação / NOC"
+                title="Voltar para a Mesa de Operação"
                 className="p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-orange-500 transition-colors cursor-pointer"
               >
                 <Monitor className="w-4 h-4" />

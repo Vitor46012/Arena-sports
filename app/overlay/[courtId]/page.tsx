@@ -62,7 +62,7 @@ const DEFAULT_BROADCAST_SPONSORS = [
   },
   {
     name: 'ARENA TECH IOT',
-    tagline: 'Botoeiras ESP32 & Scoreboards Inteligentes',
+    tagline: 'Botoeiras da Quadra & Placar Inteligente',
     accentColor: 'from-emerald-500 to-teal-600',
     logoText: 'AT',
     type: 'Official Sponsor',

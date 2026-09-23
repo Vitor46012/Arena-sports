@@ -195,7 +195,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
             className="flex items-center justify-center gap-2 p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 active:scale-95 transition-all cursor-pointer disabled:opacity-60"
           >
             <Shield className="w-4 h-4 text-orange-500 shrink-0" />
-            <span>Admin (NOC)</span>
+            <span>Administrador</span>
           </button>
 
           <button
@@ -206,14 +206,14 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
             className="flex items-center justify-center gap-2 p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 active:scale-95 transition-all cursor-pointer disabled:opacity-60"
           >
             <Trophy className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span>Tenant (Arena)</span>
+            <span>Gestor da Arena</span>
           </button>
         </div>
 
         {/* Footer Note */}
         <div className="text-center pt-2">
           <p className="text-[10px] font-mono text-slate-500">
-            Velocity Industrial Network • Sports Review Edge v2.4
+            Sports Review • Gestão de Arenas Esportivas
           </p>
         </div>
       </div>

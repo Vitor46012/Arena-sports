@@ -155,7 +155,7 @@ export default function InvoiceModal({
             <p>
               Ao realizar a <strong className="text-slate-200">Baixa Manual</strong>, o status da
               fatura será alterado para <span className="text-emerald-400 font-semibold">PAGO</span> e a
-              licença do Mini PC N100 da arena será renovada automaticamente por mais 30 dias.
+              licença do sistema da arena será renovada automaticamente por mais 30 dias.
             </p>
           </div>
         </div>
