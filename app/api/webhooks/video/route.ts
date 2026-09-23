@@ -100,7 +100,16 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Lookup (Tradução) da Quadra dinamicamente recebida no payload (ex: "quadra-1")
-    const rawCourt = court || courtId || courtIdentifier;
+    let rawCourt = court || courtId || courtIdentifier;
+
+    // Fallback inteligente: se os campos de quadra vierem vazios, tenta extrair a quadra do próprio machineName (ex: "REPLAY_quadra-1_20260921_...")
+    if ((!rawCourt || typeof rawCourt !== "string" || !rawCourt.trim()) && cleanMachineName) {
+      const nameMatch = cleanMachineName.match(/quadra[-_]?(\d+)/i);
+      if (nameMatch) {
+        rawCourt = `quadra-${nameMatch[1]}`;
+      }
+    }
+
     let targetCourt = null;
 
     if (!rawCourt || typeof rawCourt !== "string" || !rawCourt.trim()) {

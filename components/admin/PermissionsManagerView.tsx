@@ -156,7 +156,7 @@ export default function PermissionsManagerView() {
             Entitlements & Features
           </h1>
           <p className="text-slate-400 mt-2 text-sm max-w-xl leading-relaxed">
-            Gestão hiper-granular de permissões por tenant. Defina o plano padrão ou modifique as permissões individualmente.
+            Gestão detalhada de permissões por arena. Defina o plano padrão ou modifique as permissões individualmente.
           </p>
         </div>
       </div>
@@ -164,7 +164,7 @@ export default function PermissionsManagerView() {
       <div className="flex flex-col md:flex-row gap-6">
         {/* Sidebar Arenas List */}
         <div className="w-full md:w-1/3 space-y-2">
-          <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 px-2">Arenas (Tenants)</h2>
+          <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 px-2">Arenas Cadastradas</h2>
           <div className="space-y-1">
             {arenas.map(arena => (
               <button
@@ -327,7 +327,7 @@ export default function PermissionsManagerView() {
                   <span>Atenção</span>
                 </div>
                 <p className="text-[11px] text-rose-200/90 leading-relaxed">
-                  Todas as quadras, nós edge, gravações e permissões desta arena serão permanentemente removidos.
+                  Todas as quadras, equipamentos, gravações e permissões desta arena serão permanentemente removidos.
                 </p>
               </div>
             </div>

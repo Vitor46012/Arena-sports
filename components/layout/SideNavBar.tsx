@@ -123,7 +123,7 @@ export default function SideNavBar({
     >
       {/* Brand Logo Header */}
       <div className="px-1 mb-5 flex items-center justify-between">
-        <SportsReviewLogo variant="full" size="sm" />
+        <SportsReviewLogo variant="full" size="md" />
         {isMobile && onClose && (
           <button
             type="button"

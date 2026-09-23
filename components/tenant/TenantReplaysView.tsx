@@ -418,7 +418,7 @@ export default function TenantReplaysView() {
                     <div className="pt-1">
                       <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                        {isGoogleDrive ? 'Google Drive Gravado' : 'Salvo na Nuvem'}
+                        Salvo no Armazenamento em Nuvem
                       </span>
                     </div>
                   </div>

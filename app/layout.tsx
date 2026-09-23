@@ -4,6 +4,11 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Sports Review',
   description: 'Plataforma de automação de vídeo e replays esportivos para arenas.',
+  icons: {
+    icon: '/logo-icon.svg',
+    shortcut: '/logo-icon.svg',
+    apple: '/logo-icon.svg',
+  },
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {

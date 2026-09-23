@@ -395,14 +395,14 @@ export default function CourtsManagementView() {
                   </div>
                 </div>
 
-                {/* Ações de Integração (OBS e QR Code) */}
+                {/* Ações de Integração (Transmissão e Totens) */}
                 <div className="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between gap-2">
                   <a
                     href={overlayUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="flex-1 py-2 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
-                    title="Link da Tela (Para a Live)"
+                    title="Link da Tela (Para a Transmissão)"
                   >
                     <Tv className="w-4 h-4 text-orange-500" />
                     Link da Live

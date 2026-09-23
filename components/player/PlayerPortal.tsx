@@ -32,6 +32,9 @@ export interface CourtItem {
   name: string;
   identifier: string;
   arenaId: string;
+  _count?: {
+    videoClips: number;
+  };
 }
 
 interface PlayerPortalProps {
@@ -126,7 +129,11 @@ export default function PlayerPortal({
       .then((res) => (res.ok ? res.json() : []))
       .then((data: CourtItem[]) => {
         if (isMounted) {
-          const courtList = Array.isArray(data) ? data : [];
+          const rawList = Array.isArray(data) ? data : [];
+          // Oculta "Não Categorizado" se não houver vídeos vinculados a ela
+          const courtList = rawList.filter(
+            (c) => !(c.identifier === 'nao-categorizado' && (!c._count || c._count.videoClips === 0))
+          );
           setCourts(courtList);
           if (initialCourtParam) {
             const match = courtList.find(
@@ -226,7 +233,7 @@ export default function PlayerPortal({
         
         {/* Header */}
         <header className="sticky top-0 z-40 flex items-center justify-between px-4 py-3 bg-slate-900/95 border-b border-slate-800 backdrop-blur-md">
-          <SportsReviewLogo variant="compact" size="xs" />
+          <SportsReviewLogo variant="compact" size="sm" />
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold">
               REDE AO VIVO
@@ -411,10 +418,6 @@ export default function PlayerPortal({
                       <div className="absolute top-2.5 left-2.5 bg-slate-950/80 backdrop-blur-sm border border-slate-700 px-2 py-0.5 rounded text-[10px] font-mono text-orange-400 font-bold flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
                         <span>{formattedCourt}</span>
-                      </div>
-
-                      <div className="absolute bottom-2.5 left-2.5 bg-slate-950/80 backdrop-blur-sm border border-slate-700 px-2 py-0.5 rounded text-[10px] font-mono text-slate-300">
-                        {new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date(clip.createdAt))}
                       </div>
 
                       <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-transparent transition-colors">

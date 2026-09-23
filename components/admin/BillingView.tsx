@@ -296,7 +296,7 @@ export default function BillingView() {
             </h3>
             <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
               <TrendingUp className="w-4 h-4" />
-              <span>{arenas.length} {arenas.length === 1 ? 'Arena Ativa' : 'Arenas Ativas'} no Banco</span>
+              <span>{arenas.length} {arenas.length === 1 ? 'Arena Ativa' : 'Arenas Ativas'}</span>
             </div>
           </div>
         </div>

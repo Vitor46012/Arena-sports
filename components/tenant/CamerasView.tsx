@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Video, RefreshCw, VideoOff, Radio, Film } from 'lucide-react';
+import { Video, VideoOff, Radio, RefreshCw } from 'lucide-react';
 
 export interface CameraFeed {
   id: string;
@@ -19,13 +19,6 @@ export interface CameraFeed {
 export default function CamerasView() {
   const [cameras, setCameras] = useState<CameraFeed[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [reloadingCamId, setReloadingCamId] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const showToast = (text: string) => {
-    setToastMessage(text);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
 
   useEffect(() => {
     let isMounted = true;
@@ -53,25 +46,6 @@ export default function CamerasView() {
       isMounted = false;
     };
   }, []);
-
-  const handleReloadStream = (camId: string, camName: string) => {
-    setReloadingCamId(camId);
-    setCameras((prev) =>
-      prev.map((c) => (c.id === camId ? { ...c, status: 'RECONECTANDO' } : c))
-    );
-
-    setTimeout(() => {
-      setCameras((prev) =>
-        prev.map((c) => (c.id === camId ? { ...c, status: 'ONLINE' } : c))
-      );
-      setReloadingCamId(null);
-      showToast(`Conexão da câmera "${camName}" reiniciada com sucesso!`);
-    }, 1200);
-  };
-
-  const handleManualTrigger = (cam: CameraFeed) => {
-    showToast(`Corte manual de 30s gravado para ${cam.court}!`);
-  };
 
   const activeCount = cameras.filter((c) => c.status === 'ONLINE').length;
 
@@ -133,7 +107,6 @@ export default function CamerasView() {
       {!isLoading && cameras.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {cameras.map((cam) => {
-            const isReloading = reloadingCamId === cam.id;
             const isOnline = cam.status === 'ONLINE';
 
             return (
@@ -164,13 +137,9 @@ export default function CamerasView() {
                   <div className="my-auto flex flex-col items-center justify-center text-center px-6 py-4 space-y-3 z-10">
                     <div className="relative">
                       <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-orange-500 shadow-inner">
-                        {isReloading ? (
-                          <RefreshCw className="w-6 h-6 animate-spin text-orange-500" />
-                        ) : (
-                          <Radio className="w-6 h-6 text-orange-400" />
-                        )}
+                        <Radio className="w-6 h-6 text-orange-400" />
                       </div>
-                      {isOnline && !isReloading && (
+                      {isOnline && (
                         <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                           <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-black"></span>
@@ -207,31 +176,9 @@ export default function CamerasView() {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleManualTrigger(cam)}
-                      className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <Film className="w-4 h-4 text-orange-400" />
-                      <span>Gravar Corte</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      id={`btnReload-${cam.id}`}
-                      disabled={isReloading}
-                      onClick={() => handleReloadStream(cam.id, cam.name)}
-                      className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-700 text-slate-200 hover:text-orange-400 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      <RefreshCw
-                        className={`w-4 h-4 ${
-                          isReloading ? 'animate-spin text-orange-500' : ''
-                        }`}
-                      />
-                      <span>Recarregar Sinal</span>
-                    </button>
-                  </div>
+                  <span className="text-[11px] text-slate-500 font-mono">
+                    Canal Principal
+                  </span>
                 </div>
               </div>
             );
